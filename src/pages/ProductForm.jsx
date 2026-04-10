@@ -70,6 +70,13 @@ function linesToArray(text) {
     .filter(Boolean);
 }
 
+function buildImages(form) {
+  const all = linesToArray(form.imagesText);
+  const uniq = [];
+  for (const u of all) if (!uniq.includes(u)) uniq.push(u);
+  return uniq;
+}
+
 export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -152,9 +159,7 @@ export default function ProductForm() {
         setError(p?.message || "Product not found");
         return;
       }
-
       const imgs = Array.isArray(p.images) ? p.images : Array.isArray(p.image) ? p.image : [];
-
       setForm({
         ...emptyForm(),
         name: p.name || "",
@@ -247,6 +252,90 @@ export default function ProductForm() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
     set("slug", s);
+  };
+
+  const uploadFile = async (files) => {
+    const list = Array.from(files || []).filter(Boolean);
+    if (!list.length) return;
+    setUploading(true);
+    setError("");
+    try {
+      for (const file of list) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch(`${API_BASE}/api/upload/image`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(data.message || "Upload failed");
+          return;
+        }
+        if (data.url) {
+          setForm((f) => {
+            const existing = linesToArray(f.imagesText);
+            const next = existing.includes(data.url) ? existing : [...existing, data.url];
+            return { ...f, imagesText: next.join("\n") };
+          });
+        }
+      }
+    } catch {
+      setError("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const buildPayload = () => {
+    const images = buildImages(form);
+    const highlights = linesToArray(form.highlightsText);
+    const subcategoriesText = linesToArray(form.subcategoriesText);
+    const metaKeywords = linesToArray(form.metaKeywordsText.replace(/,/g, "\n"));
+    return {
+      name: form.name.trim(),
+      sku: form.sku.trim().toUpperCase(),
+      slug: form.slug.trim() || undefined,
+      categoryId: form.categoryId || undefined,
+      subcategoriesText,
+      shortDescription: form.shortDescription,
+      detailedDescription: form.detailedDescription,
+      highlights,
+      plantType: form.plantType,
+      botanicalName: form.botanicalName,
+      commonName: form.commonName,
+      heightValue: form.heightValue === "" ? undefined : Number(form.heightValue),
+      heightUnit: form.heightUnit,
+      heightLabel: form.heightLabel,
+      plantAge: form.plantAge,
+      mrp: form.mrp === "" ? undefined : Number(form.mrp),
+      price: Number(form.price),
+      discount: Number(form.discount || 0),
+      discountType: form.discountType,
+      gstPercent: Number(form.gstPercent || 0),
+      stock: Number(form.stock),
+      stockStatus: form.stockStatus,
+      minOrderQty: Math.max(1, Number(form.minOrderQty || 1)),
+      growthType: form.growthType,
+      sunlightRequirement: form.sunlightRequirement,
+      wateringSchedule: form.wateringSchedule,
+      soilType: form.soilType,
+      maintenanceLevel: form.maintenanceLevel,
+      airPurifying: form.airPurifying,
+      floweringType: form.floweringType,
+      seasonalAvailability: form.seasonalAvailability,
+      videoUrl: form.videoUrl,
+      images,
+      seoTitle: form.seoTitle,
+      metaTitle: form.metaTitle,
+      metaDescription: form.metaDescription,
+      metaKeywords,
+      soldBy: form.soldBy || "Nursery",
+      responseRate: Number(form.responseRate || 0),
+      reviewsEnabled: form.reviewsEnabled,
+      isActive: form.isActive,
+    };
   };
 
   const handleSave = async (e) => {
@@ -621,41 +710,29 @@ export default function ProductForm() {
 
           {/* ==================== MEDIA TAB (Image Upload) ==================== */}
           {tab === "media" && (
-            <div className="space-y-8">
-              <h2 className="text-xl font-black text-slate-800">Images & Video</h2>
-
-              <div>
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h2 className="text-xl font-black text-slate-800">Images & video</h2>
+              <label className="flex flex-col gap-2">
+                <span className="text-xs font-bold text-slate-500 ml-1">Upload image (stores URL from server)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploading}
+                  onChange={(e) => uploadFile(e.target.files)}
+                  className="text-sm font-semibold"
+                />
+                {uploading && <span className="text-xs text-emerald-600 font-bold">Uploading…</span>}
+              </label>
+              <div className="space-y-6">
                 <label className="flex flex-col gap-2">
-                  <span className="text-xs font-bold text-slate-500 ml-1">Upload Product Images</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageSelect}
-                    className="text-sm font-semibold file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-bold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800"
-                  />
+                  <span className="text-xs font-bold text-slate-500 ml-1">Images (one URL per line)</span>
+                  <textarea className="admin-input-flat" rows={6} value={form.imagesText} onChange={(e) => set("imagesText", e.target.value)} placeholder="https://..." />
                 </label>
-
-                {imagePreviews.length > 0 && (
-                  <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {imagePreviews.map((preview, index) => (
-                      <div key={index} className="relative rounded-2xl overflow-hidden border border-slate-200 group">
-                        <img
-                          src={preview}
-                          alt={`Preview ${index}`}
-                          className="w-full aspect-square object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-2 right-2 bg-red-600 text-white text-xs w-7 h-7 rounded-full flex items-center justify-center hover:bg-red-700 transition-all"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-bold text-slate-500 ml-1">Video URL</span>
+                  <input className="admin-input-flat" value={form.videoUrl} onChange={(e) => set("videoUrl", e.target.value)} />
+                </label>
               </div>
 
              
