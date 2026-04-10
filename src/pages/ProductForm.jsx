@@ -77,6 +77,13 @@ function buildImages(form) {
   return uniq;
 }
 
+function parseIncomingImages(product) {
+  if (Array.isArray(product?.images)) return product.images.filter(Boolean);
+  if (Array.isArray(product?.image)) return product.image.filter(Boolean);
+  if (typeof product?.image === "string" && product.image.trim()) return [product.image.trim()];
+  return [];
+}
+
 export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -90,7 +97,6 @@ export default function ProductForm() {
   const [categories, setCategories] = useState([]);
   const [subcatOptions, setSubcatOptions] = useState([]);
   const [loadingSubcats, setLoadingSubcats] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -163,7 +169,7 @@ export default function ProductForm() {
         setError(p?.message || "Product not found");
         return;
       }
-      const imgs = Array.isArray(p.images) ? p.images : Array.isArray(p.image) ? p.image : [];
+      const imgs = parseIncomingImages(p);
       setForm({
         ...emptyForm(),
         name: p.name || "",
@@ -236,39 +242,6 @@ export default function ProductForm() {
     set("slug", s);
   };
 
-  const uploadFile = async (files) => {
-    const list = Array.from(files || []).filter(Boolean);
-    if (!list.length) return;
-    setUploading(true);
-    setError("");
-    try {
-      for (const file of list) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch(`${API_BASE}/api/upload/image`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(data.message || "Upload failed");
-          return;
-        }
-        if (data.url) {
-          setForm((f) => {
-            const existing = linesToArray(f.imagesText);
-            const next = existing.includes(data.url) ? existing : [...existing, data.url];
-            return { ...f, imagesText: next.join("\n") };
-          });
-        }
-      }
-    } catch {
-      setError("Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const buildPayload = () => {
     const images = buildImages(form);
@@ -662,23 +635,27 @@ export default function ProductForm() {
           {tab === "media" && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <h2 className="text-xl font-black text-slate-800">Images & video</h2>
-              <label className="flex flex-col gap-2">
-                <span className="text-xs font-bold text-slate-500 ml-1">Upload image (stores URL from server)</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  disabled={uploading}
-                  onChange={(e) => uploadFile(e.target.files)}
-                  className="text-sm font-semibold"
-                />
-                {uploading && <span className="text-xs text-emerald-600 font-bold">Uploading…</span>}
-              </label>
               <div className="space-y-6">
                 <label className="flex flex-col gap-2">
                   <span className="text-xs font-bold text-slate-500 ml-1">Images (one URL per line)</span>
                   <textarea className="admin-input-flat" rows={6} value={form.imagesText} onChange={(e) => set("imagesText", e.target.value)} placeholder="https://..." />
                 </label>
+                {buildImages(form).length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 ml-1 mb-2">Preview</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {buildImages(form).map((url, idx) => (
+                        <img
+                          key={`${url}-${idx}`}
+                          src={url}
+                          alt={`Product ${idx + 1}`}
+                          className="w-full h-24 object-cover rounded-xl border border-slate-200"
+                          loading="lazy"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <label className="flex flex-col gap-2">
                   <span className="text-xs font-bold text-slate-500 ml-1">Video URL</span>
                   <input className="admin-input-flat" value={form.videoUrl} onChange={(e) => set("videoUrl", e.target.value)} />

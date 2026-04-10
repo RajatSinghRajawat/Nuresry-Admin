@@ -9,7 +9,7 @@ export default function Testimonials() {
   const { token } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: "", email: "", city: "", rating: "5", review: "" });
+  const [form, setForm] = useState({ name: "", email: "", city: "", rating: "5", review: "", image: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -44,6 +44,7 @@ export default function Testimonials() {
     load();
   }, [load]);
 
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -58,6 +59,7 @@ export default function Testimonials() {
           city: form.city.trim(),
           rating: Number(form.rating),
           review: form.review.trim(),
+          image: form.image.trim(),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -65,7 +67,7 @@ export default function Testimonials() {
         setError(data.message || "Could not create");
         return;
       }
-      setForm({ name: "", email: "", city: "", rating: "5", review: "" });
+      setForm({ name: "", email: "", city: "", rating: "5", review: "", image: "" });
       await load();
     } catch {
       setError("Network error");
@@ -182,6 +184,23 @@ export default function Testimonials() {
             />
           </label>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <label className="flex flex-col gap-2">
+              <span className="text-[10px] font-black uppercase text-slate-400 ml-1">Image URL</span>
+              <input
+                className="admin-input-flat"
+                value={form.image}
+                onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
+                placeholder="https://..."
+              />
+            </label>
+          </div>
+          {form.image && (
+            <div className="w-20 h-20 rounded-xl border border-slate-200 overflow-hidden">
+              <img src={form.image} alt="Customer" className="w-full h-full object-cover" />
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-50">
             <button
               type="submit"
@@ -219,6 +238,7 @@ export default function Testimonials() {
               <thead className="bg-slate-50/80 text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <tr>
                   <th className="px-8 py-4">Name</th>
+                  <th className="px-4 py-4">Image</th>
                   <th className="px-4 py-4">Rating</th>
                   <th className="px-4 py-4">Review</th>
                   <th className="px-4 py-4">Approved</th>
@@ -229,6 +249,13 @@ export default function Testimonials() {
                 {items.map((t) => (
                   <tr key={t._id} className="border-t border-slate-50 hover:bg-slate-50/50">
                     <td className="px-8 py-4 font-bold text-slate-800">{t.name}</td>
+                    <td className="px-4 py-4">
+                      {t.image ? (
+                        <img src={t.image} alt={t.name || "Customer"} className="w-10 h-10 rounded-full object-cover border border-slate-200" />
+                      ) : (
+                        <span className="text-xs text-slate-400">N/A</span>
+                      )}
+                    </td>
                     <td className="px-4 py-4">{t.rating}</td>
                     <td className="px-4 py-4 max-w-md truncate text-slate-600">{t.review}</td>
                     <td className="px-4 py-4">
