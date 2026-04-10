@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { LuPlus, LuSearch, LuPackageSearch, LuPencil, LuTrash2, LuRefreshCw } from "react-icons/lu";
 import { useAuth } from "../context/AuthContext";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5008";
+const API_BASE = import.meta.env.VITE_API_URL || "https://greenbeli.in";
 
 export default function Products() {
   const { token } = useAuth();
@@ -67,8 +67,26 @@ export default function Products() {
     }
   };
 
-  const thumb = (p) =>
-    Array.isArray(p.images) && p.images.length ? p.images[0] : p.image?.[0] || "";
+  const thumb = (p) => {
+    if (!p) return "";
+
+    // Priority 1: images array (new format)
+    if (Array.isArray(p.images) && p.images.length > 0) {
+      return p.images[0];
+    }
+
+    // Priority 2: old image field (backward compatibility)
+    if (Array.isArray(p.image) && p.image.length > 0) {
+      return p.image[0];
+    }
+
+    // Priority 3: single string (very old format)
+    if (typeof p.image === "string" && p.image) {
+      return p.image;
+    }
+
+    return "";
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-8 space-y-10">
@@ -155,13 +173,29 @@ export default function Products() {
             {items.map((p) => (
               <div key={p._id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-6 hover:bg-slate-50/80 transition-colors">
                 <div className="w-20 h-20 rounded-2xl bg-slate-100 border border-slate-100 overflow-hidden flex-shrink-0">
-                  {thumb(p) ? (
+                  {/* {thumb(p) ? (
                     <img src={thumb(p)} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-slate-300">
                       <LuPackageSearch />
                     </div>
-                  )}
+                  )} */}
+                  <div className="w-20 h-20 rounded-2xl bg-slate-100 border border-slate-100 overflow-hidden flex-shrink-0">
+                    {thumb(p) ? (
+                      <img
+                         src={`https://greenbeli.in/uploads/${thumb(p)}`}
+                        
+                        alt={p.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <LuPackageSearch size={28} />
+                      </div>
+                    )}
+
+                    
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{p.sku}</p>

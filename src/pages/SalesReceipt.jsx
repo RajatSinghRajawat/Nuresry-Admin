@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { LuPrinter, LuChevronLeft, LuLeaf, LuFileText } from "react-icons/lu";
 import { useAuth } from "../context/AuthContext";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5008";
+const API_BASE = import.meta.env.VITE_API_URL || "https://greenbeli.in";
 
 export default function SalesReceipt() {
   const { id } = useParams();

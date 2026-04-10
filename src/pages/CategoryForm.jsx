@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5008";
+const API_BASE = import.meta.env.VITE_API_URL || "https://greenbeli.in";
 
 const CATEGORY_KINDS = ["Plants", "Tools", "Pots", "Seeds", "Care", "Decoration", "Other"];
 const PLANT_SEGMENTS = ["", "Indoor", "Outdoor", "Flowering", "Bonsai", "Decoration", "FruitTrees", "Herbal", "Succulent", "Other"];

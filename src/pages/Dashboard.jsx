@@ -15,7 +15,7 @@ import {
 } from "react-icons/lu";
 import { useAuth } from "../context/AuthContext";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5008";
+const API_BASE = import.meta.env.VITE_API_URL || "https://greenbeli.in";
 
 export default function Dashboard() {
   const { token, isSuperAdmin } = useAuth();
