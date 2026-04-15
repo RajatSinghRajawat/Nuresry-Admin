@@ -4,7 +4,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_URL || "https://greenbeli.in";
-
 const STOCK_STATUS = ["in_stock", "out_of_stock", "on_request"];
 const DISCOUNT_TYPES = ["amount", "percent"];
 const FLOWERING_TYPES = ["NA", "Flowering", "Non-Flowering"];
@@ -87,7 +86,6 @@ export default function ProductForm() {
   const [form, setForm] = useState(emptyForm());
   const [selectedImageFiles, setSelectedImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
-
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [categories, setCategories] = useState([]);
@@ -96,7 +94,6 @@ export default function ProductForm() {
   const [error, setError] = useState("");
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-
   const authHeader = { Authorization: `Bearer ${token}` };
 
   const loadCategories = useCallback(async () => {
@@ -116,7 +113,6 @@ export default function ProductForm() {
       set("subcategoriesText", "");
       return;
     }
-
     const fromList = categories.find((c) => String(c?._id) === idVal);
     if (fromList && Array.isArray(fromList.subcategories)) {
       const opts = fromList.subcategories
@@ -127,7 +123,6 @@ export default function ProductForm() {
       set("subcategoriesText", opts.join("\n"));
       return;
     }
-
     setLoadingSubcats(true);
     try {
       const res = await fetch(`${API_BASE}/api/categories/${idVal}`);
@@ -159,7 +154,9 @@ export default function ProductForm() {
         setError(p?.message || "Product not found");
         return;
       }
+
       const imgs = Array.isArray(p.images) ? p.images : Array.isArray(p.image) ? p.image : [];
+
       setForm({
         ...emptyForm(),
         name: p.name || "",
@@ -205,8 +202,9 @@ export default function ProductForm() {
         isActive: p.isActive !== false,
       });
 
+      // Show existing images as previews
       setImagePreviews(imgs);
-      setSelectedImageFiles([]);
+      setSelectedImageFiles([]); // No new files on load
     } catch {
       setError("Network error");
     } finally {
@@ -254,45 +252,12 @@ export default function ProductForm() {
     set("slug", s);
   };
 
-  const uploadFile = async (files) => {
-    const list = Array.from(files || []).filter(Boolean);
-    if (!list.length) return;
-    setUploading(true);
-    setError("");
-    try {
-      for (const file of list) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch(`${API_BASE}/api/upload/image`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(data.message || "Upload failed");
-          return;
-        }
-        if (data.url) {
-          setForm((f) => {
-            const existing = linesToArray(f.imagesText);
-            const next = existing.includes(data.url) ? existing : [...existing, data.url];
-            return { ...f, imagesText: next.join("\n") };
-          });
-        }
-      }
-    } catch {
-      setError("Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const buildPayload = () => {
     const images = buildImages(form);
     const highlights = linesToArray(form.highlightsText);
     const subcategoriesText = linesToArray(form.subcategoriesText);
     const metaKeywords = linesToArray(form.metaKeywordsText.replace(/,/g, "\n"));
+
     return {
       name: form.name.trim(),
       sku: form.sku.trim().toUpperCase(),
@@ -342,14 +307,17 @@ export default function ProductForm() {
     e.preventDefault();
     setError("");
 
-    if (imagePreviews.length === 0) {
+    // FIXED: Count total images (existing URLs + newly selected files)
+    const existingImagesCount = linesToArray(form.imagesText).length;
+    const totalImages = existingImagesCount + selectedImageFiles.length;
+
+    if (totalImages === 0) {
       setError("Please add at least one image.");
       setTab("media");
       return;
     }
 
     setSaving(true);
-
     try {
       const formData = new FormData();
 
@@ -494,7 +462,6 @@ export default function ProductForm() {
                     required
                   />
                 </label>
-
                 <label className="flex flex-col gap-2">
                   <span className="text-xs font-bold text-slate-500 ml-1">SKU</span>
                   <input
@@ -505,7 +472,6 @@ export default function ProductForm() {
                     required
                   />
                 </label>
-
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-bold text-slate-500 ml-1">URL Slug</span>
                   <div className="flex gap-2">
@@ -524,7 +490,6 @@ export default function ProductForm() {
                     </button>
                   </div>
                 </div>
-
                 <label className="flex flex-col gap-2 md:col-span-2">
                   <span className="text-xs font-bold text-slate-500 ml-1">Category</span>
                   <select
@@ -543,7 +508,6 @@ export default function ProductForm() {
                     ))}
                   </select>
                 </label>
-
                 <label className="flex flex-col gap-2 md:col-span-2">
                   <span className="text-xs font-bold text-slate-500 ml-1">Subcategories</span>
                   <div className="flex flex-col gap-2">
@@ -583,17 +547,14 @@ export default function ProductForm() {
                     </div>
                   </div>
                 </label>
-
                 <label className="flex flex-col gap-2 md:col-span-2">
                   <span className="text-xs font-bold text-slate-500 ml-1">Short Description</span>
                   <textarea className="admin-input-flat" rows={3} value={form.shortDescription} onChange={(e) => set("shortDescription", e.target.value)} />
                 </label>
-
                 <label className="flex flex-col gap-2 md:col-span-2">
                   <span className="text-xs font-bold text-slate-500 ml-1">Detailed Description</span>
                   <textarea className="admin-input-flat" rows={8} value={form.detailedDescription} onChange={(e) => set("detailedDescription", e.target.value)} />
                 </label>
-
                 <label className="flex flex-col gap-2 md:col-span-2">
                   <span className="text-xs font-bold text-slate-500 ml-1">Key Features (one per line)</span>
                   <textarea className="admin-input-flat" rows={4} value={form.highlightsText} onChange={(e) => set("highlightsText", e.target.value)} placeholder="Low maintenance&#10;Air purifying" />
@@ -677,7 +638,6 @@ export default function ProductForm() {
                   <span className="text-xs font-bold text-slate-500 ml-1">Common Name</span>
                   <input className="admin-input-flat" value={form.commonName} onChange={(e) => set("commonName", e.target.value)} />
                 </label>
-
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-bold text-slate-500 ml-1">Height</span>
                   <div className="flex gap-2">
@@ -691,7 +651,6 @@ export default function ProductForm() {
                   <span className="text-xs font-bold text-slate-500 ml-1">Plant Age</span>
                   <input className="admin-input-flat" value={form.plantAge} onChange={(e) => set("plantAge", e.target.value)} />
                 </label>
-
                 <label className="flex flex-col gap-2 md:col-span-2">
                   <span className="text-xs font-bold text-slate-500 ml-1">Sunlight Requirement</span>
                   <input className="admin-input-flat" value={form.sunlightRequirement} onChange={(e) => set("sunlightRequirement", e.target.value)} />
@@ -708,44 +667,66 @@ export default function ProductForm() {
             </div>
           )}
 
-          {/* ==================== MEDIA TAB (Image Upload) ==================== */}
+          {/* ==================== MEDIA TAB (Image Upload) - FIXED ==================== */}
           {tab === "media" && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <h2 className="text-xl font-black text-slate-800">Images & video</h2>
+              <h2 className="text-xl font-black text-slate-800">Images & Video</h2>
+
               <label className="flex flex-col gap-2">
-                <span className="text-xs font-bold text-slate-500 ml-1">Upload image (stores URL from server)</span>
+                <span className="text-xs font-bold text-slate-500 ml-1">Upload New Images</span>
                 <input
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 transition-all cursor-pointer"
                   type="file"
                   accept="image/*"
                   multiple
-                  disabled={uploading}
-                  onChange={(e) => uploadFile(e.target.files)}
-                  className="text-sm font-semibold"
+                  onChange={handleImageSelect}
                 />
-                {uploading && <span className="text-xs text-emerald-600 font-bold">Uploading…</span>}
               </label>
+
+              {/* Image Previews + Remove */}
+              {imagePreviews.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={preview}
+                        alt={`preview-${index}`}
+                        className="w-full h-40 object-cover rounded-2xl border border-slate-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center hover:bg-red-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="space-y-6">
                 <label className="flex flex-col gap-2">
-                  <span className="text-xs font-bold text-slate-500 ml-1">Images (one URL per line)</span>
-                  <textarea className="admin-input-flat" rows={6} value={form.imagesText} onChange={(e) => set("imagesText", e.target.value)} placeholder="https://..." />
+                  <span className="text-xs font-bold text-slate-500 ml-1">Existing / All Image URLs (one per line)</span>
+                  <textarea
+                    className="admin-input-flat"
+                    rows={6}
+                    value={form.imagesText}
+                    onChange={(e) => set("imagesText", e.target.value)}
+                    placeholder="https://..."
+                  />
                 </label>
+
                 <label className="flex flex-col gap-2">
-                  <span className="text-xs font-bold text-slate-500 ml-1">Video URL</span>
-                  <input className="admin-input-flat" value={form.videoUrl} onChange={(e) => set("videoUrl", e.target.value)} />
+                  <span className="text-xs font-bold text-slate-500 ml-1">Video URL (YouTube, etc.)</span>
+                  <input
+                    className="admin-input-flat"
+                    value={form.videoUrl}
+                    onChange={(e) => set("videoUrl", e.target.value)}
+                    placeholder="https://youtube.com/watch?v=..."
+                  />
                 </label>
               </div>
-
-             
-
-              <label className="flex flex-col gap-2">
-                <span className="text-xs font-bold text-slate-500 ml-1">Video URL (YouTube, etc.)</span>
-                <input
-                  className="admin-input-flat"
-                  value={form.videoUrl}
-                  onChange={(e) => set("videoUrl", e.target.value)}
-                  placeholder="https://youtube.com/watch?v=..."
-                />
-              </label>
             </div>
           )}
 
@@ -758,7 +739,6 @@ export default function ProductForm() {
                   <span className="text-xs font-bold text-slate-500 ml-1">Merchandising / SEO Title</span>
                   <input className="admin-input-flat" value={form.seoTitle} onChange={(e) => set("seoTitle", e.target.value)} />
                 </label>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
                   <div className="space-y-6">
                     <label className="flex flex-col gap-2">
