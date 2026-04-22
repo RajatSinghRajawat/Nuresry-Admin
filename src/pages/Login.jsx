@@ -64,10 +64,10 @@ export default function Login() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         className="relative w-full max-w-[440px]"
       >
-        <div className="absolute -top-3 -right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest shadow-sm">
+        {/* <div className="absolute -top-3 -right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest shadow-sm">
           <LuSparkles className="text-emerald-500" size={14} />
           Admin
-        </div>
+        </div> */}
 
         <div className="rounded-[2rem] border border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-[0_32px_64px_-24px_rgba(15,23,42,0.18)] p-10 sm:p-12">
           <div className="flex items-center gap-4 mb-10">
@@ -161,9 +161,7 @@ export default function Login() {
           </p>
         </div>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
-          API: <span className="font-mono text-slate-500">{API_BASE}</span>
-        </p>
+       
       </motion.div>
     </div>
   );
