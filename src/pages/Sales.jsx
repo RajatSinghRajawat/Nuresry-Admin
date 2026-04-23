@@ -151,21 +151,21 @@ export default function Sales() {
   const totals = summary.totals || { totalQuantity: 0, totalAmount: 0, saleCount: 0 };
 
   return (
-    <div className="max-w-7xl mx-auto p-8 space-y-10">
-      <header className="flex justify-between items-end flex-wrap gap-4">
-        <div>
-          <p className="text-[10px] uppercase font-black tracking-widest text-emerald-700 mb-2">Reporting</p>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Sales Dashboard</h1>
-          <p className="text-sm text-slate-400 font-medium mt-1">
+    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-10">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end flex-wrap gap-4 md:gap-6">
+        <div className="space-y-1">
+          <p className="text-[9px] md:text-[10px] uppercase font-black tracking-widest text-emerald-700">Reporting</p>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Sales Dashboard</h1>
+          <p className="text-xs md:text-sm text-slate-400 font-medium max-w-xs md:max-w-none">
             Track transactions, calculate revenue, and manage nursery sales (superadmin).
           </p>
         </div>
         <button
           type="button"
           onClick={handleRefresh}
-          className={`w-12 h-12 bg-white border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all shadow-sm ${loading ? "animate-spin" : ""}`}
+          className={`w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-100 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all shadow-sm ${loading ? "animate-spin" : ""}`}
         >
-          <LuRefreshCw size={20} />
+          <LuRefreshCw size={18} />
         </button>
       </header>
 
@@ -173,7 +173,7 @@ export default function Sales() {
         <div className="rounded-2xl border border-red-100 bg-red-50 text-red-700 text-sm font-semibold px-4 py-3">{error}</div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
         {[
           { label: "Total Revenue", value: `₹${Number(totals.totalAmount || 0).toLocaleString("en-IN")}`, sub: "Filtered range", icon: <LuTrendingUp /> },
           { label: "Items Sold", value: String(totals.totalQuantity ?? 0), sub: "Total unit count", icon: <LuPackage /> },
@@ -181,34 +181,34 @@ export default function Sales() {
         ].map((stat, i) => (
           <div
             key={i}
-            className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-emerald-200 transition-all"
+            className="bg-white p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4 md:gap-6 group hover:border-emerald-200 transition-all"
           >
-            <div className="w-16 h-16 rounded-2xl bg-slate-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 flex items-center justify-center text-2xl transition-all duration-300 shadow-inner">
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-slate-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 flex items-center justify-center text-xl md:text-2xl transition-all duration-300 shadow-inner">
               {stat.icon}
             </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</p>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight transition-colors group-hover:text-emerald-700">{stat.value}</h3>
-              <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter mt-1 italic">{stat.sub}</p>
+            <div className="min-w-0">
+              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5 md:mb-1">{stat.label}</p>
+              <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight transition-colors group-hover:text-emerald-700 truncate">{stat.value}</h3>
+              <p className="text-[9px] md:text-[10px] font-bold text-emerald-600 uppercase tracking-tighter mt-0.5 md:mt-1 italic">{stat.sub}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <section className="lg:col-span-2 bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8 space-y-6">
-          <h2 className="text-sm font-black uppercase tracking-widest text-slate-800">Filters</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        <section className="lg:col-span-2 bg-white rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm p-6 md:p-8 space-y-4 md:space-y-6">
+          <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-slate-800">Filters</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <label className="flex flex-col gap-2">
-              <span className="text-[10px] font-black uppercase text-slate-400 ml-1">Date From</span>
+              <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Date From</span>
               <input className="admin-input-flat" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-[10px] font-black uppercase text-slate-400 ml-1">Date To</span>
+              <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Date To</span>
               <input className="admin-input-flat" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
             </label>
             <label className="flex flex-col gap-2 md:col-span-2">
-              <span className="text-[10px] font-black uppercase text-slate-400 ml-1">Filter by Product</span>
+              <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Filter by Product</span>
               <select className="admin-input-flat" value={productId} onChange={(e) => setProductId(e.target.value)}>
                 <option value="">All Products</option>
                 {products.map((p) => (
@@ -219,7 +219,7 @@ export default function Sales() {
               </select>
             </label>
           </div>
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-3 pt-2 md:pt-4">
             <button
               type="button"
               onClick={() => {
@@ -232,7 +232,7 @@ export default function Sales() {
                   fetchSales(1);
                 }, 0);
               }}
-              className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600"
+              className="px-4 md:px-6 py-3 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600"
             >
               Reset
             </button>
@@ -243,18 +243,18 @@ export default function Sales() {
                 loadSummary();
                 fetchSales(1);
               }}
-              className="px-10 py-3.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+              className="px-6 md:px-10 py-3 md:py-3.5 bg-slate-900 text-white rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
             >
               Apply Filter
             </button>
           </div>
         </section>
 
-        <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8 space-y-6">
-          <h2 className="text-sm font-black uppercase tracking-widest text-slate-800">Quick Record</h2>
-          <form className="space-y-6" onSubmit={createSale}>
+        <section className="bg-white rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm p-6 md:p-8 space-y-4 md:space-y-6">
+          <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-slate-800">Quick Record</h2>
+          <form className="space-y-4 md:space-y-6" onSubmit={createSale}>
             <label className="flex flex-col gap-2">
-              <span className="text-[10px] font-black uppercase text-slate-400 ml-1">Select Product</span>
+              <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Select Product</span>
               <select className="admin-input-flat" value={createProductId} onChange={(e) => setCreateProductId(e.target.value)} required>
                 <option value="">— Select —</option>
                 {products.map((p) => (
@@ -265,13 +265,13 @@ export default function Sales() {
               </select>
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-[10px] font-black uppercase text-slate-400 ml-1">Quantity</span>
+              <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Quantity</span>
               <input className="admin-input-flat" type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </label>
             <button
               type="submit"
               disabled={creating}
-              className="w-full py-4 bg-emerald-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-800 transition-all active:scale-95"
+              className="w-full py-3.5 md:py-4 bg-emerald-700 text-white rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-800 transition-all active:scale-95"
             >
               {creating ? "Processing..." : "Create & Print Receipt"}
             </button>

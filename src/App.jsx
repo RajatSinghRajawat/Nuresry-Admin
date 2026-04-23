@@ -14,6 +14,9 @@ import Testimonials from "./pages/Testimonials";
 import Orders from "./pages/Orders";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
+import Customers from "./pages/Customers";
+import Leads from "./pages/Leads";
+import Proposals from "./pages/Proposals";
 
 function App() {
   return (
@@ -55,6 +58,9 @@ function App() {
           />
           <Route path="testimonials" element={<Testimonials />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="leads" element={<Leads />} />
+          <Route path="proposals" element={<Proposals />} />
           <Route
             path="settings"
             element={

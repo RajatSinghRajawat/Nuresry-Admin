@@ -138,17 +138,17 @@ export default function CategoryForm() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-8 space-y-10">
-      <header className="flex justify-between items-start">
-        <div>
-          <p className="text-[10px] uppercase font-black tracking-widest text-emerald-700 mb-2">Taxonomy</p>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">{isNew ? "New Category" : "Edit Category"}</h1>
-          <p className="text-sm text-slate-400 font-medium mt-1">Build your nursery taxonomy by defining segments and collections.</p>
+    <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6 md:space-y-10">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-1">
+          <p className="text-[9px] md:text-[10px] uppercase font-black tracking-widest text-emerald-700">Taxonomy</p>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{isNew ? "New Category" : "Edit Category"}</h1>
+          <p className="text-xs md:text-sm text-slate-400 font-medium max-w-xs md:max-w-none">Build your nursery taxonomy by defining segments and collections.</p>
         </div>
         <button
           type="button"
           onClick={() => navigate("/categories")}
-          className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-800 hover:bg-slate-50 transition-all shadow-sm"
+          className="w-full sm:w-auto px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase text-slate-800 hover:bg-slate-50 transition-all shadow-sm"
         >
           Back to list
         </button>
@@ -157,19 +157,19 @@ export default function CategoryForm() {
       {error && <div className="rounded-2xl border border-red-100 bg-red-50 text-red-700 text-sm font-semibold px-4 py-3">{error}</div>}
 
       <form className="space-y-6" onSubmit={handleSave}>
-        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden p-10 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <h2 className="text-xl font-black text-slate-800">Identity & display</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden p-6 md:p-10 space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <h2 className="text-lg md:text-xl font-black text-slate-800">Identity & display</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-bold text-slate-500 ml-1">Category name *</span>
+              <span className="text-[10px] md:text-xs font-bold text-slate-500 ml-1">Category name *</span>
               <input className="admin-input-flat" value={form.name} onChange={(e) => set("name", e.target.value)} required />
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-bold text-slate-500 ml-1">URL slug</span>
+              <span className="text-[10px] md:text-xs font-bold text-slate-500 ml-1">URL slug</span>
               <input className="admin-input-flat" value={form.slug} onChange={(e) => set("slug", e.target.value)} />
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-bold text-slate-500 ml-1">Taxonomy kind</span>
+              <span className="text-[10px] md:text-xs font-bold text-slate-500 ml-1">Taxonomy kind</span>
               <select className="admin-input-flat" value={form.kind} onChange={(e) => set("kind", e.target.value)}>
                 {CATEGORY_KINDS.map((k) => (
                   <option key={k} value={k}>
@@ -179,7 +179,7 @@ export default function CategoryForm() {
               </select>
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-bold text-slate-500 ml-1">Plant segment</span>
+              <span className="text-[10px] md:text-xs font-bold text-slate-500 ml-1">Plant segment</span>
               <select className="admin-input-flat" value={form.plantSegment} onChange={(e) => set("plantSegment", e.target.value)}>
                 {PLANT_SEGMENTS.map((s) => (
                   <option key={s || "none"} value={s}>
@@ -189,14 +189,14 @@ export default function CategoryForm() {
               </select>
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-bold text-slate-500 ml-1">Id (optional)</span>
+              <span className="text-[10px] md:text-xs font-bold text-slate-500 ml-1">Id (optional)</span>
               <input className="admin-input-flat" value={form.Id} onChange={(e) => set("Id", e.target.value)} placeholder="CAT-ID" />
             </label>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-50">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 pt-6 md:pt-8 border-t border-slate-50">
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-bold text-slate-500 ml-1">Parent category</span>
+              <span className="text-[10px] md:text-xs font-bold text-slate-500 ml-1">Parent category</span>
               <select className="admin-input-flat" value={form.parentCategory} onChange={(e) => set("parentCategory", e.target.value)}>
                 <option value="">— Root Category —</option>
                 {parents
@@ -210,34 +210,34 @@ export default function CategoryForm() {
             </label>
           </div>
 
-          <label className="flex flex-col gap-2 pt-8 border-t border-slate-50">
-            <span className="text-xs font-bold text-slate-500 ml-1">Category description</span>
+          <label className="flex flex-col gap-2 pt-6 md:pt-8 border-t border-slate-50">
+            <span className="text-[10px] md:text-xs font-bold text-slate-500 ml-1">Category description</span>
             <textarea className="admin-input-flat" rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
           </label>
 
           <label className="flex flex-col gap-2">
-            <span className="text-xs font-bold text-slate-500 ml-1">Subcategories (one name per line)</span>
+            <span className="text-[10px] md:text-xs font-bold text-slate-500 ml-1">Subcategories (one name per line)</span>
             <textarea className="admin-input-flat" rows={4} value={form.subcategoriesText} onChange={(e) => set("subcategoriesText", e.target.value)} />
           </label>
         </div>
 
-        <div className="flex justify-between items-center bg-white border border-slate-200 p-8 rounded-[2.5rem] shadow-sm">
-          <label className="flex items-center gap-3 cursor-pointer group">
+        <div className="flex flex-col sm:flex-row justify-between items-center bg-white border border-slate-200 p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] shadow-sm gap-6">
+          <label className="flex items-center gap-3 cursor-pointer group w-full sm:w-auto">
             <input type="checkbox" className="w-5 h-5 accent-emerald-600 rounded" checked={form.isActive} onChange={(e) => set("isActive", e.target.checked)} />
-            <span className="text-sm font-black text-slate-600 uppercase tracking-tighter">Publish on Storefront</span>
+            <span className="text-xs md:text-sm font-black text-slate-600 uppercase tracking-tighter">Publish on Storefront</span>
           </label>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => navigate("/categories")}
-              className="px-10 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all font-sans"
+              className="px-6 md:px-10 py-3 md:py-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all font-sans"
             >
               Discard Changes
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-12 py-4 bg-emerald-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-100 hover:bg-emerald-800 transition-all active:scale-95"
+              className="px-8 md:px-12 py-3 md:py-4 bg-emerald-700 text-white rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-100 hover:bg-emerald-800 transition-all active:scale-95"
             >
               {saving ? "Processing..." : "Finish Category"}
             </button>

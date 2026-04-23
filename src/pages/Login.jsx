@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
 import { LuLeaf, LuLock, LuMail, LuArrowRight, LuSparkles } from "react-icons/lu";
 import { useAuth } from "../context/AuthContext";
 
@@ -58,17 +57,7 @@ export default function Login() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.06)_0%,transparent_55%)]" />
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-[440px]"
-      >
-        {/* <div className="absolute -top-3 -right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest shadow-sm">
-          <LuSparkles className="text-emerald-500" size={14} />
-          Admin
-        </div> */}
-
+      <div className="relative w-full max-w-[440px]">
         <div className="rounded-[2rem] border border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-[0_32px_64px_-24px_rgba(15,23,42,0.18)] p-10 sm:p-12">
           <div className="flex items-center gap-4 mb-10">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white flex items-center justify-center shadow-lg shadow-emerald-200/50">
@@ -129,21 +118,15 @@ export default function Login() {
             </label>
 
             {error && (
-              <motion.p
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-sm font-semibold text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3"
-              >
+              <p className="text-sm font-semibold text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
                 {error}
-              </motion.p>
+              </p>
             )}
 
-            <motion.button
+            <button
               type="submit"
               disabled={loading}
-              whileHover={{ scale: loading ? 1 : 1.01 }}
-              whileTap={{ scale: loading ? 1 : 0.99 }}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 text-white py-4 text-[11px] font-black uppercase tracking-[0.15em] shadow-lg shadow-emerald-200 hover:bg-emerald-800 disabled:opacity-60 transition-colors"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 text-white py-4 text-[11px] font-black uppercase tracking-[0.15em] shadow-lg shadow-emerald-200 hover:bg-emerald-800 hover:scale-[1.01] active:scale-[0.98] disabled:opacity-60 transition-all cursor-pointer"
             >
               {loading ? (
                 "Signing in…"
@@ -153,16 +136,14 @@ export default function Login() {
                   <LuArrowRight size={18} />
                 </>
               )}
-            </motion.button>
+            </button>
           </form>
 
           <p className="mt-8 text-center text-[11px] text-slate-400 font-medium">
             Protected area — only authorised nursery staff.
           </p>
         </div>
-
-       
-      </motion.div>
+      </div>
     </div>
   );
 }

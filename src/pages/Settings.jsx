@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { LuShield, LuUserPlus, LuRefreshCw, LuTrash2 } from "react-icons/lu";
 import { useAuth } from "../context/AuthContext";
 
@@ -93,26 +92,26 @@ export default function Settings() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-8 space-y-10">
-      <header className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
-        <div>
-          <p className="text-[10px] uppercase font-black tracking-widest text-emerald-700 mb-2">
+    <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6 md:space-y-10">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div className="space-y-1">
+          <p className="text-[9px] md:text-[10px] uppercase font-black tracking-widest text-emerald-700">
             Superadmin
           </p>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            <LuShield className="text-emerald-600" />
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+            <LuShield className="text-emerald-600" size={28} />
             Settings
           </h1>
-          <p className="text-sm text-slate-400 font-medium mt-1">
+          <p className="text-xs md:text-sm text-slate-400 font-medium max-w-xs md:max-w-none">
             Manage admin accounts. Only superadmin can access this page.
           </p>
         </div>
         <button
           type="button"
           onClick={load}
-          className={`w-12 h-12 bg-white border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-emerald-600 shadow-sm ${loading ? "animate-spin" : ""}`}
+          className={`w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-100 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 hover:text-emerald-600 shadow-sm ${loading ? "animate-spin" : ""}`}
         >
-          <LuRefreshCw size={20} />
+          <LuRefreshCw size={18} />
         </button>
       </header>
 
@@ -122,56 +121,52 @@ export default function Settings() {
         </div>
       )}
 
-      <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8 space-y-6"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-            <LuUserPlus size={22} />
+      <section className="bg-white rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm p-6 md:p-8 space-y-6">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+            <LuUserPlus size={20} />
           </div>
           <div>
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-800">Create admin</h2>
-            <p className="text-[11px] text-slate-400 font-medium">New accounts receive the selected role.</p>
+            <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-slate-800">Create admin</h2>
+            <p className="text-[10px] md:text-[11px] text-slate-400 font-medium">New accounts receive the selected role.</p>
           </div>
         </div>
 
-        <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-black uppercase text-slate-400">Name</span>
+        <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Name</span>
             <input
               required
-              className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold"
+              className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold focus:border-emerald-500 outline-none transition-all"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-black uppercase text-slate-400">Email</span>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Email</span>
             <input
               required
               type="email"
-              className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold"
+              className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold focus:border-emerald-500 outline-none transition-all"
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-black uppercase text-slate-400">Password</span>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Password</span>
             <input
               required
               type="password"
               minLength={6}
-              className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold"
+              className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold focus:border-emerald-500 outline-none transition-all"
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-black uppercase text-slate-400">Role</span>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Role</span>
             <select
-              className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold"
+              className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold focus:border-emerald-500 outline-none transition-all cursor-pointer"
               value={form.role}
               onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
             >
@@ -179,33 +174,33 @@ export default function Settings() {
               <option value="superadmin">superadmin</option>
             </select>
           </label>
-          <div className="md:col-span-2 flex justify-end">
+          <div className="md:col-span-2 flex justify-end pt-2">
             <button
               type="submit"
               disabled={creating}
-              className="px-8 py-3.5 bg-emerald-700 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg hover:bg-emerald-800 disabled:opacity-60"
+              className="w-full sm:w-auto px-8 py-3.5 bg-emerald-700 text-white rounded-xl md:rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest shadow-lg hover:bg-emerald-800 disabled:opacity-60 transition-all active:scale-95"
             >
               {creating ? "Creating…" : "Create admin"}
             </button>
           </div>
         </form>
-      </motion.section>
+      </section>
 
-      <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-8 py-5 border-b border-slate-50">
-          <h2 className="text-sm font-black uppercase tracking-widest text-slate-800">All admins</h2>
+      <section className="bg-white rounded-2xl md:rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 md:px-8 py-4 md:py-5 border-b border-slate-50">
+          <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-slate-800">All admins</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50/80 text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <thead className="bg-slate-50/80 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">
               <tr>
-                <th className="px-8 py-4">Name</th>
+                <th className="px-6 md:px-8 py-4">Name</th>
                 <th className="px-4 py-4">Email</th>
                 <th className="px-4 py-4">Role</th>
-                <th className="px-8 py-4 text-right">Actions</th>
+                <th className="px-6 md:px-8 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr>
                   <td colSpan={4} className="px-8 py-16 text-center text-slate-400 font-medium">
@@ -220,23 +215,23 @@ export default function Settings() {
                 </tr>
               ) : (
                 admins.map((a) => (
-                  <tr key={a._id} className="border-t border-slate-50 hover:bg-slate-50/50">
-                    <td className="px-8 py-4 font-bold text-slate-800">{a.name}</td>
-                    <td className="px-4 py-4 text-slate-600">{a.email}</td>
+                  <tr key={a._id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 md:px-8 py-4 font-bold text-slate-800 text-xs md:text-sm whitespace-nowrap">{a.name}</td>
+                    <td className="px-4 py-4 text-slate-600 text-xs md:text-sm">{a.email}</td>
                     <td className="px-4 py-4">
                       <span
-                        className={`inline-flex px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
+                        className={`inline-flex px-2 py-1 rounded-lg text-[9px] md:text-[10px] font-black uppercase ${
                           a.role === "superadmin" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"
                         }`}
                       >
                         {a.role}
                       </span>
                     </td>
-                    <td className="px-8 py-4 text-right">
+                    <td className="px-6 md:px-8 py-4 text-right">
                       <button
                         type="button"
                         onClick={() => handleDelete(a._id)}
-                        className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 text-xs font-bold"
+                        className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 text-[10px] md:text-xs font-bold transition-colors"
                       >
                         <LuTrash2 size={14} />
                         Delete

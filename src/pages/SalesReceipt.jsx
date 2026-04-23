@@ -1,7 +1,5 @@
-// pages/SalesReceipt.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { LuPrinter, LuChevronLeft, LuLeaf, LuFileText } from "react-icons/lu";
 import { useAuth } from "../context/AuthContext";
 
@@ -78,11 +76,7 @@ export default function SalesReceipt() {
         </div>
       )}
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-[0_30px_80px_rgba(0,0,0,0.04)] border border-slate-100 overflow-hidden receipt-shadow"
-      >
+      <div className="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-[0_30px_80px_rgba(0,0,0,0.04)] border border-slate-100 overflow-hidden receipt-shadow">
         <div className="p-12 pb-8 border-b border-dashed border-slate-100 relative">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-emerald-600 rounded-b-full" />
 
@@ -158,7 +152,7 @@ export default function SalesReceipt() {
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Thank you for your purchase!</p>
           <p className="text-[9px] font-medium text-slate-300 italic px-8">This is a system generated receipt.</p>
         </div>
-      </motion.div>
+      </div>
 
       <style
         dangerouslySetInnerHTML={{

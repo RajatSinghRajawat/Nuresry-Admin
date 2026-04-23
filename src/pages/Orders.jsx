@@ -88,21 +88,21 @@ export default function Orders() {
   const fulfilledTotal = items.filter((o) => o.orderStatus === "Delivered").reduce((s, o) => s + Number(o.totalPrice || 0), 0);
 
   return (
-    <div className="max-w-7xl mx-auto p-8 space-y-10">
-      <header className="flex justify-between items-end flex-wrap gap-4">
-        <div>
-          <p className="text-[10px] uppercase font-black tracking-widest text-emerald-700 mb-2">Fulfillment</p>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Orders</h1>
-          <p className="text-sm text-slate-400 font-medium mt-1">
+    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-10">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end flex-wrap gap-4 md:gap-6">
+        <div className="space-y-1">
+          <p className="text-[9px] md:text-[10px] uppercase font-black tracking-widest text-emerald-700">Fulfillment</p>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Orders</h1>
+          <p className="text-xs md:text-sm text-slate-400 font-medium max-w-xs md:max-w-none">
             Track customer purchases, manage shipments, and update order statuses.
           </p>
         </div>
         <button
           type="button"
           onClick={load}
-          className={`w-12 h-12 bg-white border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all shadow-sm ${loading ? "animate-spin" : ""}`}
+          className={`w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-100 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all shadow-sm ${loading ? "animate-spin" : ""}`}
         >
-          <LuRefreshCw size={20} />
+          <LuRefreshCw size={18} />
         </button>
       </header>
 
@@ -110,12 +110,12 @@ export default function Orders() {
         <div className="rounded-2xl border border-red-100 bg-red-50 text-red-700 text-sm font-semibold px-4 py-3">{error}</div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
         {[
           { label: "Active Orders", value: String(activeCount), sub: "Currently processing", icon: <LuShoppingBag /> },
           { label: "On this page", value: String(items.length), sub: "Rows loaded", icon: <LuPackage /> },
           {
-            label: "Page revenue (sample)",
+            label: "Page revenue",
             value: `₹${fulfilledTotal.toLocaleString("en-IN")}`,
             sub: "Delivered on page",
             icon: <LuTrendingUp />,
@@ -123,22 +123,22 @@ export default function Orders() {
         ].map((stat, i) => (
           <div
             key={i}
-            className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-emerald-200 transition-all"
+            className="bg-white p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4 md:gap-6 group hover:border-emerald-200 transition-all"
           >
-            <div className="w-16 h-16 rounded-2xl bg-slate-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 flex items-center justify-center text-2xl transition-all duration-300 shadow-inner">
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-slate-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 flex items-center justify-center text-xl md:text-2xl transition-all duration-300 shadow-inner">
               {stat.icon}
             </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</p>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight transition-colors group-hover:text-emerald-700">{stat.value}</h3>
-              <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter mt-1 italic">{stat.sub}</p>
+            <div className="min-w-0">
+              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5 md:mb-1">{stat.label}</p>
+              <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight transition-colors group-hover:text-emerald-700 truncate">{stat.value}</h3>
+              <p className="text-[9px] md:text-[10px] font-bold text-emerald-600 uppercase tracking-tighter mt-0.5 md:mt-1 italic">{stat.sub}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden relative">
-        <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center flex-wrap gap-2">
+      <section className="bg-white rounded-2xl md:rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden relative">
+        <div className="px-4 md:px-8 py-4 md:py-6 border-b border-slate-50 flex justify-between items-center flex-wrap gap-2">
           <div className="flex items-center gap-4">
             <h2 className="text-sm font-black uppercase tracking-widest text-slate-800">Order Queue</h2>
             <div className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest">

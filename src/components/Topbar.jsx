@@ -1,7 +1,5 @@
-// components/Topbar.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   HiOutlineMagnifyingGlass,
   HiOutlineBell,
@@ -9,10 +7,11 @@ import {
   HiOutlineCog6Tooth,
   HiOutlineUser,
   HiOutlineArrowLeftOnRectangle,
+  HiOutlineBars3BottomLeft,
 } from "react-icons/hi2";
 import { useAuth } from "../context/AuthContext";
 
-const Topbar = () => {
+const Topbar = ({ onMenuClick }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const { admin, logout, isSuperAdmin } = useAuth();
@@ -27,42 +26,48 @@ const Topbar = () => {
   };
 
   return (
-    <div className="fixed top-0 left-64 right-0 h-20 bg-white/80 backdrop-blur-md flex items-center justify-between px-10 z-40 border-b border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)]">
-      <motion.div
-        animate={{ width: isSearchFocused ? 420 : 340 }}
-        className={`flex items-center rounded-2xl px-5 py-2.5 gap-3 transition-all duration-500 border
-          ${
-            isSearchFocused
-              ? "bg-white shadow-xl shadow-slate-200/40 border-emerald-200"
-              : "bg-slate-50/50 border-slate-100"
-          }`}
-      >
-        <HiOutlineMagnifyingGlass
-          className={`text-xl transition-colors duration-300 ${isSearchFocused ? "text-emerald-600" : "text-slate-400"}`}
-        />
-        <input
-          type="text"
-          placeholder="Search dashboard..."
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
-          className="bg-transparent outline-none text-sm w-full text-slate-700 font-medium placeholder-slate-400"
-        />
-      </motion.div>
-
-      <div className="flex items-center gap-6">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          type="button"
-          className="relative p-2.5 bg-slate-50 text-slate-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 border border-slate-100 transition-colors group"
+    <div className="fixed top-0 left-0 lg:left-64 right-0 h-20 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 md:px-10 z-40 border-b border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)]">
+      <div className="flex items-center gap-4">
+        {/* Mobile Menu Button */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 rounded-xl bg-slate-50 text-slate-500 hover:text-emerald-600 border border-slate-100 transition-colors"
         >
-          <HiOutlineBell className="text-2xl" />
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 border-2 border-white rounded-full" />
-        </motion.button>
+          <HiOutlineBars3BottomLeft size={24} />
+        </button>
+
+        <div
+          className={`flex items-center rounded-2xl px-3 md:px-5 py-2 gap-2 md:gap-3 transition-all duration-500 border
+            ${
+              isSearchFocused
+                ? "bg-white shadow-xl shadow-slate-200/40 border-emerald-200 w-[200px] sm:w-[420px]"
+                : "bg-slate-50/50 border-slate-100 w-[140px] sm:w-[340px]"
+            }`}
+        >
+          <HiOutlineMagnifyingGlass
+            className={`text-lg md:text-xl transition-colors duration-300 ${isSearchFocused ? "text-emerald-600" : "text-slate-400"}`}
+          />
+          <input
+            type="text"
+            placeholder={window.innerWidth < 640 ? "Search..." : "Search dashboard..."}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+            className="bg-transparent outline-none text-xs md:text-sm w-full text-slate-700 font-medium placeholder-slate-400"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 md:gap-6">
+        <button
+          type="button"
+          className="relative p-2 md:p-2.5 bg-slate-50 text-slate-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 border border-slate-100 transition-colors group"
+        >
+          <HiOutlineBell className="text-xl md:text-2xl" />
+          <span className="absolute top-2 right-2 md:top-2.5 md:right-2.5 w-2 h-2 bg-red-500 border-2 border-white rounded-full" />
+        </button>
 
         <div className="relative">
-          <motion.button
-            whileHover={{ y: -1 }}
+          <button
             type="button"
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="flex items-center gap-4 bg-white p-1.5 pr-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer"
@@ -77,14 +82,10 @@ const Topbar = () => {
             <HiOutlineChevronDown
               className={`text-slate-300 text-[10px] transition-transform duration-500 ${isProfileOpen ? "rotate-180" : ""}`}
             />
-          </motion.button>
+          </button>
 
-          <AnimatePresence>
             {isProfileOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              <div
                 className="absolute right-0 mt-3 w-60 bg-white rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.08)] border border-slate-100 p-2 z-50 overflow-hidden"
               >
                 <button
@@ -122,9 +123,8 @@ const Topbar = () => {
                   </span>
                   Sign Out
                 </button>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
         </div>
       </div>
     </div>
