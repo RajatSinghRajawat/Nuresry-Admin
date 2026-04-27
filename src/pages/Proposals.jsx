@@ -11,6 +11,7 @@ export default function Proposals() {
 
   const [proposals, setProposals] = useState([]);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -32,9 +33,11 @@ export default function Proposals() {
     items: [
       {
         itemName: "",
+        category: "",
+        subCategory: "",
         itemDescription: "",
         quantity: 1,
-        rate: 0,
+        rate: null,
         hsnCode: "",
       },
     ],
@@ -75,7 +78,23 @@ export default function Proposals() {
       setProducts([]);
     }
   };
-console.log("products" , products);
+  console.log("products", products);
+
+  // Fetch Categories
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/categories`, {
+        headers: getHeaders(),
+      });
+      const data = await res.json();
+      setCategories(data.items || data);
+      console.log("Fetched Categories:", data.items);
+    } catch (err) {
+      console.error("Failed to fetch Categories:", err);
+      setCategories([]);
+    }
+  };
+  console.log("Categories", categories);
 
   // Fetch Proposals
   const fetchProposals = async () => {
@@ -130,8 +149,10 @@ console.log("products" , products);
       const product = products.find((p) => p.name === item.itemName);
       return {
         product: product?._id || null,
+        category: item.category,
+        subCategory: item.subCategory,
         quantity: Number(item.quantity) || 1,
-        rate: Number(item.rate) || 0,
+        rate: Number(item.rate) || null,
         description: item.itemDescription || "",
         hsnCode: item.hsnCode || "06029090",
       };
@@ -167,7 +188,7 @@ console.log("products" , products);
           date: new Date().toISOString().split("T")[0],
           description: "",
           client: { name: "", email: "", phone: "", address: "", shipToAddress: "" },
-          items: [{ itemName: "", itemDescription: "", quantity: 1, rate: 0, hsnCode: "" }],
+          items: [{ itemName: "", category: "", subCategory: "", itemDescription: "", quantity: 1, rate: null, hsnCode: "" }],
           gstEnabled: true,
           termsAndConditions: "No return policy",
           note: "Urgent delivery",
@@ -190,7 +211,7 @@ console.log("products" , products);
       ...prev,
       items: [
         ...prev.items,
-        { itemName: "", itemDescription: "", quantity: 1, rate: 0, hsnCode: "" },
+        { itemName: "", category: "", subCategory: "", itemDescription: "", quantity: 1, rate: null, hsnCode: "" },
       ],
     }));
   };
@@ -225,6 +246,7 @@ console.log("products" , products);
   useEffect(() => {
     if (token) {
       fetchProducts();
+      fetchCategories();
       fetchProposals();
       getallUsers();
     }
@@ -347,277 +369,321 @@ console.log("products" , products);
       {/* Create Proposal Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-[3rem] shadow-2xl">
-            <div className="sticky top-0 bg-white/95 backdrop-blur-md px-10 py-6 border-b border-slate-100 flex items-center justify-between z-10">
-              <h2 className="text-2xl font-black text-slate-900">New Greenbeli Proposal</h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-3 rounded-2xl bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
-              >
-                <LuX size={24} />
-              </button>
-            </div>
+          <div className="bg-white w-full max-w-5xl max-h-[92vh] rounded-[3rem] shadow-2xl ml-20 overflow-hidden">
+            <div className="max-h-[92vh] overflow-y-auto">
 
-            <form onSubmit={handleSubmit} className="p-10 space-y-12">
-              {/* Date & Description */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date</label>
-                  <input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Description</label>
-                  <input
-                    placeholder="E.g. Landscaping project for XYZ Hotel"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
-                  />
-                </div>
+              <div className="sticky top-0 bg-white/95 backdrop-blur-md px-10 py-6 border-b border-slate-100 flex items-center justify-between z-10">
+                <h2 className="text-2xl font-black text-slate-900">New Greenbeli Proposal</h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-3 rounded-2xl bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                >
+                  <LuX size={24} />
+                </button>
               </div>
 
-              {/* Client Information */}
-              <div className="space-y-6">
-                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-700 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-emerald-600 rounded-full" /> Client Information
-                </h3>
-                <div>
-                  <select 
-                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500 mb-2"
-                    onChange={(e) => {
-                      const selectedUser = users.find(u => u.name === e.target.value);
-                      if (selectedUser) {
-                        let addressStr = "";
-                        if (selectedUser.address) {
-                          if (typeof selectedUser.address === 'object') {
-                            const { street, city, state, postalCode, country } = selectedUser.address;
-                            addressStr = [street, city, state, postalCode, country].filter(Boolean).join(", ");
-                          } else {
-                            addressStr = selectedUser.address;
-                          }
-                        }
-                        
-                        setFormData(prev => ({
-                          ...prev,
-                          client: {
-                            ...prev.client,
-                            name: selectedUser.name || "",
-                            email: selectedUser.email || "",
-                            phone: selectedUser.phone || prev.client.phone,
-                            address: addressStr || prev.client.address
-                          }
-                        }));
-                      }
-                    }}
-                  >
-                    <option value="">Select Existing Client</option>
-                    {users.map((u) => (
-                      <option key={u._id} value={u.name}>{u.name} - {u.email}</option>
-                    ))}
-                  </select>
+              <form onSubmit={handleSubmit} className="p-10 space-y-12">
+                {/* Date & Description */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date</label>
+                    <input
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Description</label>
+                    <input
+                      placeholder="E.g. Landscaping project for XYZ Hotel"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
+                    />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <input
-                    placeholder="Client Name *"
-                    value={formData.client.name}
-                    onChange={(e) => setFormData({ ...formData, client: { ...formData.client, name: e.target.value } })}
-                    className="bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
-                    required
-                  />
-                  <input
-                    placeholder="Email ID"
-                    type="email"
-                    value={formData.client.email}
-                    onChange={(e) => setFormData({ ...formData, client: { ...formData.client, email: e.target.value } })}
-                    className="bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
-                  />
-                  <input
-                    placeholder="Contact Number"
-                    value={formData.client.phone}
-                    onChange={(e) => setFormData({ ...formData, client: { ...formData.client, phone: e.target.value } })}
-                    className="bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
-                  />
-                  <textarea
-                    placeholder="Billing Address"
-                    rows="2"
-                    value={formData.client.address}
-                    onChange={(e) => setFormData({ ...formData, client: { ...formData.client, address: e.target.value } })}
-                    className="bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500 md:col-span-2"
-                  />
-                  <textarea
-                    placeholder="Ship To Address"
-                    rows="2"
-                    value={formData.client.shipToAddress}
-                    onChange={(e) => setFormData({ ...formData, client: { ...formData.client, shipToAddress: e.target.value } })}
-                    className="bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              {/* Items Section */}
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-700 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-emerald-600 rounded-full" /> Items & Rates
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={handleAddItem}
-                    className="text-xs font-black text-emerald-700 hover:underline"
-                  >
-                    + Add Row
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {formData.items.map((item, idx) => (
-                    <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-6 bg-slate-50/70 rounded-3xl border border-slate-100">
-                      <div className="md:col-span-3">
-                        <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Item Name</label>
-                        <select
-                          value={item.itemName}
-                          onChange={(e) => handleItemChange(idx, "itemName", e.target.value)}
-                          className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none"
-                          required
-                        >
-                          <option value="">Select Product</option>
-                          {products.map((p) => (
-                            <option key={p._id} value={p.name}>{p.name}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="md:col-span-3">
-                        <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Description</label>
-                        <input
-                          value={item.itemDescription}
-                          onChange={(e) => handleItemChange(idx, "itemDescription", e.target.value)}
-                          className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none"
-                        />
-                      </div>
-
-                      <div className="md:col-span-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Qty</label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => handleItemChange(idx, "quantity", parseInt(e.target.value) || 1)}
-                          className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-center"
-                        />
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Rate (₹)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.rate}
-                          onChange={(e) => handleItemChange(idx, "rate", parseFloat(e.target.value) || 0)}
-                          className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none"
-                        />
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">HSN Code</label>
-                        <input
-                          value={item.hsnCode}
-                          onChange={(e) => handleItemChange(idx, "hsnCode", e.target.value)}
-                          className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none"
-                        />
-                      </div>
-
-                      <div className="md:col-span-1 flex items-end justify-center pb-1">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(idx)}
-                          className="text-slate-400 hover:text-red-500 transition-colors p-2"
-                        >
-                          <LuTrash2 size={20} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Taxes & Footer */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 border-t border-slate-100">
+                {/* Client Information */}
                 <div className="space-y-6">
-                  <div className="flex items-center gap-4 p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100">
-                    <div
-                      onClick={() => setFormData({ ...formData, gstEnabled: !formData.gstEnabled })}
-                      className={`w-12 h-6 rounded-full transition-all cursor-pointer relative ${formData.gstEnabled ? 'bg-emerald-600' : 'bg-slate-300'}`}
+                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-700 flex items-center gap-2">
+                    <div className="w-1 h-4 bg-emerald-600 rounded-full" /> Client Information
+                  </h3>
+                  <div>
+                    <select
+                      className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500 mb-2"
+                      onChange={(e) => {
+                        const selectedUser = users.find(u => u.name === e.target.value);
+                        if (selectedUser) {
+                          let addressStr = "";
+                          if (selectedUser.address) {
+                            if (typeof selectedUser.address === 'object') {
+                              const { street, city, state, postalCode, country } = selectedUser.address;
+                              addressStr = [street, city, state, postalCode, country].filter(Boolean).join(", ");
+                            } else {
+                              addressStr = selectedUser.address;
+                            }
+                          }
+
+                          setFormData(prev => ({
+                            ...prev,
+                            client: {
+                              ...prev.client,
+                              name: selectedUser.name || "",
+                              email: selectedUser.email || "",
+                              phone: selectedUser.phone || prev.client.phone,
+                              address: addressStr || prev.client.address
+                            }
+                          }));
+                        }
+                      }}
                     >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.gstEnabled ? 'left-7' : 'left-1'}`} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-black text-emerald-900 uppercase">GST (18%)</p>
-                      <p className="text-[10px] font-bold text-emerald-700">Apply tax to total amount</p>
-                    </div>
+                      <option value="">Select Existing Client</option>
+                      {users.map((u) => (
+                        <option key={u._id} value={u.name}>{u.name} - {u.email}</option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Terms and Conditions</label>
-                      <textarea
-                        rows="4"
-                        value={formData.termsAndConditions}
-                        onChange={(e) => setFormData({ ...formData, termsAndConditions: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold text-xs outline-none focus:border-emerald-500 mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Note</label>
-                      <textarea
-                        rows="2"
-                        value={formData.note}
-                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold text-xs outline-none focus:border-emerald-500 mt-1"
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <input
+                      placeholder="Client Name *"
+                      value={formData.client.name}
+                      onChange={(e) => setFormData({ ...formData, client: { ...formData.client, name: e.target.value } })}
+                      className="bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
+                      required
+                    />
+                    <input
+                      placeholder="Email ID"
+                      type="email"
+                      value={formData.client.email}
+                      onChange={(e) => setFormData({ ...formData, client: { ...formData.client, email: e.target.value } })}
+                      className="bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
+                    />
+                    <input
+                      placeholder="Contact Number"
+                      value={formData.client.phone}
+                      onChange={(e) => setFormData({ ...formData, client: { ...formData.client, phone: e.target.value } })}
+                      className="bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
+                    />
+                    <textarea
+                      placeholder="Billing Address"
+                      rows="2"
+                      value={formData.client.address}
+                      onChange={(e) => setFormData({ ...formData, client: { ...formData.client, address: e.target.value } })}
+                      className="bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500 md:col-span-2"
+                    />
+                    <textarea
+                      placeholder="Ship To Address"
+                      rows="2"
+                      value={formData.client.shipToAddress}
+                      onChange={(e) => setFormData({ ...formData, client: { ...formData.client, shipToAddress: e.target.value } })}
+                      className="bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500"
+                    />
                   </div>
                 </div>
 
-                {/* Total Summary */}
-                <div className="bg-slate-900 text-white p-10 rounded-[2.5rem] flex flex-col justify-between">
+                {/* Items Section */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-700 flex items-center gap-2">
+                      <div className="w-1 h-4 bg-emerald-600 rounded-full" /> Items & Rates
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={handleAddItem}
+                      className="text-xs font-black text-emerald-700 hover:underline"
+                    >
+                      + Add Row
+                    </button>
+                  </div>
+
                   <div className="space-y-4">
-                    <div className="flex justify-between text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-                      <span>Subtotal</span>
-                      <span>₹{formData.items.reduce((s, i) => s + (Number(i.quantity) * Number(i.rate)), 0).toLocaleString('en-IN')}</span>
-                    </div>
-                    {formData.gstEnabled && (
-                      <div className="flex justify-between text-emerald-400 font-bold uppercase text-[10px] tracking-widest">
-                        <span>GST (18%)</span>
-                        <span>₹{Math.round(formData.items.reduce((s, i) => s + (Number(i.quantity) * Number(i.rate)), 0) * 0.18).toLocaleString('en-IN')}</span>
+                    {formData.items.map((item, idx) => (
+                      <div key={idx} className="p-6 bg-slate-50/70 rounded-3xl border border-slate-100 space-y-4">
+
+                        {/* Row 1 */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                          <div className="md:col-span-3">
+                            <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Item Name</label>
+                            <select
+                              value={item.itemName}
+                              onChange={(e) => handleItemChange(idx, "itemName", e.target.value)}
+                              className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none"
+                              required
+                            >
+                              <option value="">Select Product</option>
+                              {products.map((p) => (
+                                <option key={p._id} value={p.name}>{p.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="md:col-span-3">
+                            <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Category</label>
+                            <select
+                              value={item.category}
+                              onChange={(e) => handleItemChange(idx, "category", e.target.value)}
+                              className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none"
+                              required
+                            >
+                              <option value="">Select Category</option>
+                              {categories.map((p) => (
+                                <option key={p._id} value={p.name}>{p.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="md:col-span-3">
+                            <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Sub Category</label>
+                            <select
+                              value={item.subCategory}
+                              onChange={(e) => handleItemChange(idx, "subCategory", e.target.value)}
+                              className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none"
+                              required
+                            >
+                              <option value="">Select Sub Category</option>
+                              {/* {categories.map((p) => (
+                              <option key={p._id} value={p.subcategories}>{p.subcategories}</option>
+                            ))} */}
+                            </select>
+                          </div>
+
+                          <div className="md:col-span-3">
+                            <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Description</label>
+                            <input
+                              value={item.itemDescription}
+                              onChange={(e) => handleItemChange(idx, "itemDescription", e.target.value)}
+                              className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none"
+                              placeholder="e.g. Notification"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Row 2 */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                          <div className="md:col-span-2">
+                            <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Qty</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleItemChange(idx, "quantity", parseInt(e.target.value) || 1)}
+                              className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-center"
+                            />
+                          </div>
+
+                          <div className="md:col-span-4">
+                            <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Rate (₹)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={item.rate}
+                              onChange={(e) => handleItemChange(idx, "rate", parseFloat(e.target.value) || null)}
+                              className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none"
+                              placeholder="e.g. ₹120"
+                            />
+                          </div>
+
+                          <div className="md:col-span-4">
+                            <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">HSN Code</label>
+                            <input
+                              value={item.hsnCode}
+                              onChange={(e) => handleItemChange(idx, "hsnCode", e.target.value)}
+                              className="w-full bg-white border border-slate-100 p-3 rounded-xl font-bold text-sm outline-none"
+                              placeholder="e.g. 06XXXX90"
+                            />
+                          </div>
+
+                          <div className="md:col-span-2 flex items-end justify-center pb-1">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(idx)}
+                              className="text-slate-400 hover:text-red-500 transition-colors p-2"
+                            >
+                              <LuTrash2 size={20} />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                    <div className="border-t border-white/10 pt-4 flex justify-between items-end">
-                      <span className="text-xs font-black uppercase tracking-widest text-white/50">Total Amount</span>
-                      <span className="text-4xl font-black text-emerald-400 tracking-tighter">
-                        ₹{calculateTotal().toLocaleString('en-IN')}
-                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Taxes & Footer */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 border-t border-slate-100">
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4 p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100">
+                      <div
+                        onClick={() => setFormData({ ...formData, gstEnabled: !formData.gstEnabled })}
+                        className={`w-12 h-6 rounded-full transition-all cursor-pointer relative ${formData.gstEnabled ? 'bg-emerald-600' : 'bg-slate-300'}`}
+                      >
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.gstEnabled ? 'left-7' : 'left-1'}`} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-emerald-900 uppercase">GST (18%)</p>
+                        <p className="text-[10px] font-bold text-emerald-700">Apply tax to total amount</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Terms and Conditions</label>
+                        <textarea
+                          rows="4"
+                          value={formData.termsAndConditions}
+                          onChange={(e) => setFormData({ ...formData, termsAndConditions: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold text-xs outline-none focus:border-emerald-500 mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Note</label>
+                        <textarea
+                          rows="2"
+                          value={formData.note}
+                          onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold text-xs outline-none focus:border-emerald-500 mt-1"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="mt-10 w-full py-5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-300 text-slate-950 font-black uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3"
-                  >
-                    <LuSave size={20} /> {submitting ? "Saving..." : "Save Proposal"}
-                  </button>
+                  {/* Total Summary */}
+                  <div className="bg-slate-900 text-white p-10 rounded-[2.5rem] flex flex-col justify-between">
+                    <div className="space-y-4">
+                      <div className="flex justify-between text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                        <span>Subtotal</span>
+                        <span>₹{formData.items.reduce((s, i) => s + (Number(i.quantity) * Number(i.rate)), 0).toLocaleString('en-IN')}</span>
+                      </div>
+                      {formData.gstEnabled && (
+                        <div className="flex justify-between text-emerald-400 font-bold uppercase text-[10px] tracking-widest">
+                          <span>GST (18%)</span>
+                          <span>₹{Math.round(formData.items.reduce((s, i) => s + (Number(i.quantity) * Number(i.rate)), 0) * 0.18).toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-white/10 pt-4 flex justify-between items-end">
+                        <span className="text-xs font-black uppercase tracking-widest text-white/50">Total Amount</span>
+                        <span className="text-4xl font-black text-emerald-400 tracking-tighter">
+                          ₹{calculateTotal().toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="mt-10 w-full py-5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-300 text-slate-950 font-black uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3"
+                    >
+                      <LuSave size={20} /> {submitting ? "Saving..." : "Save Proposal"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
+
       )}
     </div>
   );
