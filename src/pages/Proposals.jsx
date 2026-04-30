@@ -18,6 +18,7 @@ export default function Proposals() {
   const [search, setSearch] = useState("");
 
   const [users, setUsers] = useState([]);
+  const [productCategoryFilter, setProductCategoryFilter] = useState("all");
 
   // Form State
   const [formData, setFormData] = useState({
@@ -67,7 +68,7 @@ export default function Proposals() {
   // Fetch Products
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/products`, {
+      const res = await fetch(`${API_BASE}/api/products?limit=500`, {
         headers: getHeaders(),
       });
       const data = await res.json();
@@ -79,6 +80,25 @@ export default function Proposals() {
     }
   };
   console.log("products", products);
+
+  const getProductCategoryLabel = (product) => {
+    const segment = product?.categoryId?.plantSegment;
+    const categoryName = product?.categoryId?.name;
+    return segment || categoryName || "Uncategorized";
+  };
+
+  const filteredProducts = products.filter((product) => {
+    if (productCategoryFilter === "all") return true;
+    const segment = String(product?.categoryId?.plantSegment || "").toLowerCase();
+    const categoryName = String(product?.categoryId?.name || "").toLowerCase();
+    return segment === productCategoryFilter || categoryName === productCategoryFilter;
+  });
+
+  const getSubCategoryOptions = (item) => {
+    const selectedProduct = products.find((p) => p.name === item.itemName);
+    if (selectedProduct?.subcategoriesText?.length) return selectedProduct.subcategoriesText;
+    return [];
+  };
 
   // Fetch Categories
   const fetchCategories = async () => {
@@ -114,6 +134,7 @@ export default function Proposals() {
       setLoading(false);
     }
   };
+
 
   // Delete Proposal
   const deleteProposal = async (id) => {
@@ -229,6 +250,27 @@ export default function Proposals() {
     setFormData((prev) => {
       const updatedItems = [...prev.items];
       updatedItems[index] = { ...updatedItems[index], [field]: value };
+
+      if (field === "itemName") {
+        const selectedProduct = products.find((p) => p.name === value);
+        if (selectedProduct) {
+          updatedItems[index].category = getProductCategoryLabel(selectedProduct);
+          if (
+            Array.isArray(selectedProduct.subcategoriesText) &&
+            selectedProduct.subcategoriesText.length > 0
+          ) {
+            updatedItems[index].subCategory = selectedProduct.subcategoriesText[0];
+          } else {
+            updatedItems[index].subCategory = "";
+          }
+          if (!updatedItems[index].rate && Number(selectedProduct.price || 0) > 0) {
+            updatedItems[index].rate = Number(selectedProduct.price || 0);
+          }
+        } else {
+          updatedItems[index].category = "";
+          updatedItems[index].subCategory = "";
+        }
+      }
       return { ...prev, items: updatedItems };
     });
   };
@@ -490,13 +532,25 @@ export default function Proposals() {
                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-700 flex items-center gap-2">
                       <div className="w-1 h-4 bg-emerald-600 rounded-full" /> Items & Rates
                     </h3>
-                    <button
-                      type="button"
-                      onClick={handleAddItem}
-                      className="text-xs font-black text-emerald-700 hover:underline"
-                    >
-                      + Add Row
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <select
+                        value={productCategoryFilter}
+                        onChange={(e) => setProductCategoryFilter(e.target.value)}
+                        className="bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-bold text-slate-700"
+                      >
+                        <option value="all">All Products</option>
+                        <option value="flowering">Flowering</option>
+                        <option value="indoor">Indoor</option>
+                        <option value="outdoor">Outdoor</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleAddItem}
+                        className="text-xs font-black text-emerald-700 hover:underline"
+                      >
+                        + Add Row
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
@@ -514,7 +568,7 @@ export default function Proposals() {
                               required
                             >
                               <option value="">Select Product</option>
-                              {products.map((p) => (
+                              {filteredProducts.map((p) => (
                                 <option key={p._id} value={p.name}>{p.name}</option>
                               ))}
                             </select>
@@ -529,8 +583,8 @@ export default function Proposals() {
                               required
                             >
                               <option value="">Select Category</option>
-                              {categories.map((p) => (
-                                <option key={p._id} value={p.name}>{p.name}</option>
+                              {categories.map((c) => (
+                                <option key={c._id} value={c.plantSegment || c.name}>{c.plantSegment || c.name}</option>
                               ))}
                             </select>
                           </div>
@@ -544,9 +598,9 @@ export default function Proposals() {
                               required
                             >
                               <option value="">Select Sub Category</option>
-                              {/* {categories.map((p) => (
-                              <option key={p._id} value={p.subcategories}>{p.subcategories}</option>
-                            ))} */}
+                              {getSubCategoryOptions(item).map((sub) => (
+                                <option key={sub} value={sub}>{sub}</option>
+                              ))}
                             </select>
                           </div>
 
