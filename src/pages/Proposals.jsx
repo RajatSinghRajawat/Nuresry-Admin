@@ -19,6 +19,7 @@ export default function Proposals() {
 
   const [users, setUsers] = useState([]);
   const [productCategoryFilter, setProductCategoryFilter] = useState("all");
+  const [selectedUserId, setSelectedUserId] = useState("");
 
   // Form State
   const [formData, setFormData] = useState({
@@ -52,6 +53,16 @@ export default function Proposals() {
     Authorization: `Bearer ${token}`,
   });
 
+  const toArray = (data, preferredKey) => {
+    if (Array.isArray(data)) return data;
+    if (preferredKey && Array.isArray(data?.[preferredKey])) return data[preferredKey];
+    if (Array.isArray(data?.items)) return data.items;
+    if (Array.isArray(data?.users)) return data.users;
+    if (Array.isArray(data?.proposals)) return data.proposals;
+    if (Array.isArray(data?.data)) return data.data;
+    return [];
+  };
+
   const getallUsers = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/getAllusers`, {
@@ -59,9 +70,10 @@ export default function Proposals() {
       });
       const data = await res.json();
       console.log("All users:", data);
-      setUsers(data);
+      setUsers(toArray(data, "users"));
     } catch (err) {
       console.error("Failed to fetch users:", err);
+      setUsers([]);
     }
   }
 
@@ -72,7 +84,7 @@ export default function Proposals() {
         headers: getHeaders(),
       });
       const data = await res.json();
-      setProducts(data.items || data);
+      setProducts(toArray(data, "items"));
       console.log("Fetched products:", data.items);
     } catch (err) {
       console.error("Failed to fetch products:", err);
@@ -107,7 +119,7 @@ export default function Proposals() {
         headers: getHeaders(),
       });
       const data = await res.json();
-      setCategories(data.items || data);
+      setCategories(toArray(data, "items"));
       console.log("Fetched Categories:", data.items);
     } catch (err) {
       console.error("Failed to fetch Categories:", err);
@@ -121,12 +133,14 @@ export default function Proposals() {
     setLoading(true);
     try {
       // const query = search ? `&search=${encodeURIComponent(search)}` : "";
-      const res = await fetch("https://greenbeli.in/api/proposals?page=1&limit=10");
+      const res = await fetch(`${API_BASE}/api/proposals?page=1&limit=10`, {
+        headers: getHeaders(),
+      });
 
       const data = await res.json();
 
 
-      setProposals(data.proposals || data);
+      setProposals(toArray(data, "proposals"));
     } catch (err) {
       console.error("Failed to fetch proposals:", err);
       setProposals([]);
@@ -163,6 +177,10 @@ export default function Proposals() {
       alert("Client name is required");
       return;
     }
+    if (!selectedUserId) {
+      alert("Please select an existing client from dropdown.");
+      return;
+    }
 
     setSubmitting(true);
 
@@ -180,6 +198,7 @@ export default function Proposals() {
     });
 
     const payload = {
+      user: selectedUserId,
       clientName: formData.client.name,
       emailId: formData.client.email,
       contactNumber: formData.client.phone,
@@ -214,6 +233,7 @@ export default function Proposals() {
           termsAndConditions: "No return policy",
           note: "Urgent delivery",
         });
+        setSelectedUserId("");
         fetchProposals();
       } else {
         alert(result.message || "Failed to create proposal");
@@ -456,8 +476,9 @@ export default function Proposals() {
                     <select
                       className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold outline-none focus:border-emerald-500 mb-2"
                       onChange={(e) => {
-                        const selectedUser = users.find(u => u.name === e.target.value);
+                        const selectedUser = users.find((u) => u._id === e.target.value);
                         if (selectedUser) {
+                          setSelectedUserId(selectedUser._id);
                           let addressStr = "";
                           if (selectedUser.address) {
                             if (typeof selectedUser.address === 'object') {
@@ -480,10 +501,11 @@ export default function Proposals() {
                           }));
                         }
                       }}
+                      value={selectedUserId}
                     >
                       <option value="">Select Existing Client</option>
-                      {users.map((u) => (
-                        <option key={u._id} value={u.name}>{u.name} - {u.email}</option>
+                      {Array.isArray(users) && users.map((u) => (
+                        <option key={u._id} value={u._id}>{u.name} - {u.email}</option>
                       ))}
                     </select>
                   </div>
