@@ -54,7 +54,7 @@ export default function Proposals() {
 
   const getallUsers = async () => {
     try {
-      const res = await fetch(`http://localhost:5008/api/getAllusers`, {
+      const res = await fetch(`${API_BASE}/api/getAllusers`, {
         headers: getHeaders(),
       });
       const data = await res.json();
@@ -121,7 +121,7 @@ export default function Proposals() {
     setLoading(true);
     try {
       // const query = search ? `&search=${encodeURIComponent(search)}` : "";
-      const res = await fetch("http://localhost:5008/api/proposals?page=1&limit=10");
+      const res = await fetch("https://greenbeli.in/api/proposals?page=1&limit=10");
 
       const data = await res.json();
 
