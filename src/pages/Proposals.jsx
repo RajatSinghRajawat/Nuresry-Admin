@@ -170,6 +170,40 @@ export default function Proposals() {
     }
   };
 
+  const updateProposalStatus = async (proposal) => {
+    if (!proposal?._id) return;
+    const currentStatus = proposal.status || "Draft";
+    const nextStatus = window.prompt(
+      "Enter new status (Draft, Sent, Approved, Rejected):",
+      currentStatus
+    );
+
+    if (!nextStatus || nextStatus.trim() === currentStatus) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/proposals/${proposal._id}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify({ status: nextStatus.trim() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data?.message || "Failed to update proposal");
+        return;
+      }
+
+      setProposals((prev) =>
+        prev.map((item) =>
+          item._id === proposal._id ? { ...item, ...data.proposal } : item
+        )
+      );
+    } catch (err) {
+      console.error("Update proposal failed:", err);
+      alert("Error updating proposal");
+    }
+  };
+
   // Create Proposal
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -406,6 +440,13 @@ export default function Proposals() {
                       <div className="flex items-center justify-end gap-2">
                         <button className="p-2 text-slate-400 hover:text-emerald-600 transition-colors">
                           <LuDownload size={18} />
+                        </button>
+                        <button
+                          onClick={() => updateProposalStatus(p)}
+                          className="p-2 text-slate-400 hover:text-blue-600 transition-colors text-xs font-bold"
+                          title="Update status"
+                        >
+                          Edit
                         </button>
 
                         {isSuperAdmin && (
