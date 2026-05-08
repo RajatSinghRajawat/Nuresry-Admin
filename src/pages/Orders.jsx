@@ -19,6 +19,7 @@ export default function Orders() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [updatingOrderId, setUpdatingOrderId] = useState("");
 
   const load = useCallback(async () => {
     setError("");
@@ -49,6 +50,9 @@ export default function Orders() {
   }, [load]);
 
   const updateStatus = async (orderId, orderStatus) => {
+    if (!orderId || !orderStatus) return;
+    setUpdatingOrderId(orderId);
+    setError("");
     try {
       const res = await fetch(`${API_BASE}/api/admin/orders/${orderId}/status`, {
         method: "PATCH",
@@ -56,16 +60,19 @@ export default function Orders() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ orderStatus }),
+        // Send both keys for backward compatibility with older APIs.
+        body: JSON.stringify({ orderStatus, status: orderStatus }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.message || "Update failed");
+        setError(data.message || "Update failed");
         return;
       }
       await load();
     } catch {
-      alert("Network error");
+      setError("Network error");
+    } finally {
+      setUpdatingOrderId("");
     }
   };
 
@@ -168,6 +175,7 @@ export default function Orders() {
                   <th className="px-8 py-4">Order</th>
                   <th className="px-4 py-4">Customer</th>
                   <th className="px-4 py-4">Total</th>
+                  <th className="px-4 py-4">Payment</th>
                   <th className="px-4 py-4">Status</th>
                 </tr>
               </thead>
@@ -183,9 +191,21 @@ export default function Orders() {
                     </td>
                     <td className="px-4 py-4 font-black text-slate-900">₹{Number(o.totalPrice || 0).toLocaleString("en-IN")}</td>
                     <td className="px-4 py-4">
+                      <div className="text-[10px] font-bold uppercase text-slate-500 space-y-0.5">
+                        <p>{o.paymentInfo?.method || "UPI"} · {o.paymentInfo?.status || "pending"}</p>
+                        <p className="normal-case text-slate-400">{o.paymentInfo?.upiId || "UPI ID not set"}</p>
+                        <p className="normal-case text-slate-400">{o.paymentInfo?.phoneNo || "Phone not set"}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
                       <select
                         value={o.orderStatus}
-                        onChange={(e) => updateStatus(o._id, e.target.value)}
+                        disabled={updatingOrderId === o._id}
+                        onChange={(e) => {
+                          const nextStatus = e.target.value;
+                          if (nextStatus === o.orderStatus) return;
+                          updateStatus(o._id, nextStatus);
+                        }}
                         className={`admin-input-flat text-xs font-black uppercase ${getStatusColor(o.orderStatus)} border-0`}
                       >
                         {STATUSES.map((s) => (

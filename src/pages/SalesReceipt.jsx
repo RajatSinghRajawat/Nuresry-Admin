@@ -46,6 +46,7 @@ export default function SalesReceipt() {
   const admin = sale?.adminId;
   const qty = sale?.quantity ?? 0;
   const total = sale?.totalAmount ?? 0;
+  const unitPrice = qty > 0 ? Number(total) / Number(qty) : 0;
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-12 space-y-8 min-h-screen flex flex-col items-center">
@@ -84,9 +85,10 @@ export default function SalesReceipt() {
             <div>
               <div className="flex items-center gap-2 text-emerald-700 font-black tracking-tighter text-2xl mb-2">
                 <LuLeaf size={24} />
-                <span>Nursery Empire</span>
+                <span>Greenbeli Nursery</span>
               </div>
               <p className="text-xs font-black uppercase tracking-widest text-slate-400">Official Sales Receipt</p>
+              <p className="mt-2 text-xs text-slate-500">Address: Jaipur, Rajasthan</p>
             </div>
             <div className="text-right">
               <p className="text-[10px] font-black uppercase text-slate-300 mb-1">Receipt ID</p>
@@ -107,6 +109,14 @@ export default function SalesReceipt() {
               <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Issued By</p>
               <p className="text-sm font-bold text-slate-700">{admin?.name || admin?.email || "—"}</p>
             </div>
+            <div>
+              <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Customer</p>
+              <p className="text-sm font-bold text-slate-700">Walk-in Customer</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Payment Method</p>
+              <p className="text-sm font-bold text-slate-700">Counter Sale</p>
+            </div>
           </div>
         </div>
 
@@ -114,11 +124,6 @@ export default function SalesReceipt() {
           <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 text-center">Summary of Sale</h3>
 
           <div className="space-y-6">
-            <div className="flex justify-between items-center text-sm font-bold text-slate-600 pb-4 border-b border-slate-50">
-              <span>Product Name / SKU</span>
-              <span>Total</span>
-            </div>
-
             {loading ? (
               <div className="py-12 text-center text-slate-400 font-medium">Loading…</div>
             ) : !sale ? (
@@ -127,12 +132,38 @@ export default function SalesReceipt() {
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">No data</p>
               </div>
             ) : (
-              <div className="flex justify-between items-center text-sm font-bold text-slate-800">
-                <span>
-                  {product?.name || "Product"} · {product?.sku || "—"}
-                </span>
-                <span>₹{Number(total).toLocaleString("en-IN")}</span>
-              </div>
+              <table className="w-full text-sm border border-slate-200">
+                <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-widest">
+                  <tr>
+                    <th className="text-left px-3 py-2">Item</th>
+                    <th className="text-left px-3 py-2">Quantity</th>
+                    <th className="text-left px-3 py-2">Unit Price</th>
+                    <th className="text-left px-3 py-2">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-t border-slate-200">
+                    <td className="px-3 py-2 font-bold text-slate-800">
+                      {product?.name || "Product"} ({product?.sku || "—"})
+                    </td>
+                    <td className="px-3 py-2">{qty}</td>
+                    <td className="px-3 py-2">₹{Number(unitPrice).toLocaleString("en-IN")}</td>
+                    <td className="px-3 py-2 font-bold">₹{Number(total).toLocaleString("en-IN")}</td>
+                  </tr>
+                  <tr className="border-t border-slate-200">
+                    <td className="px-3 py-2 font-semibold text-slate-600" colSpan={3}>Subtotal</td>
+                    <td className="px-3 py-2 font-semibold">₹{Number(total).toLocaleString("en-IN")}</td>
+                  </tr>
+                  <tr className="border-t border-slate-200">
+                    <td className="px-3 py-2 font-semibold text-slate-600" colSpan={3}>Tax</td>
+                    <td className="px-3 py-2 font-semibold">₹0</td>
+                  </tr>
+                  <tr className="border-t border-slate-200 bg-slate-50">
+                    <td className="px-3 py-2 font-black text-slate-900" colSpan={3}>Total Amount</td>
+                    <td className="px-3 py-2 font-black text-slate-900">₹{Number(total).toLocaleString("en-IN")}</td>
+                  </tr>
+                </tbody>
+              </table>
             )}
           </div>
 

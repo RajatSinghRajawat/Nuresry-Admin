@@ -14,6 +14,10 @@ export default function Customers() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [orderTotals, setOrderTotals] = useState({ orderCount: 0, totalAmount: 0, totalItems: 0 });
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
   const [isLive, setIsLive] = useState(false);
   const pollingRef = useRef(null);
 
@@ -37,6 +41,35 @@ export default function Customers() {
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
+
+  useEffect(() => {
+    if (!selectedUser?._id) {
+      setOrderHistory([]);
+      setOrderTotals({ orderCount: 0, totalAmount: 0, totalItems: 0 });
+      setOrdersError("");
+      return;
+    }
+    const fetchOrders = async () => {
+      setOrdersLoading(true);
+      setOrdersError("");
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/users/${selectedUser._id}/orders`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || "Failed to load purchase details");
+        setOrderHistory(Array.isArray(data.items) ? data.items : []);
+        setOrderTotals(data.totals || { orderCount: 0, totalAmount: 0, totalItems: 0 });
+      } catch (err) {
+        setOrdersError(err.message || "Failed to load purchase details");
+        setOrderHistory([]);
+        setOrderTotals({ orderCount: 0, totalAmount: 0, totalItems: 0 });
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+    fetchOrders();
+  }, [selectedUser?._id, token]);
 
   // Live Polling Logic
   useEffect(() => {
@@ -302,6 +335,47 @@ export default function Customers() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-8 border-t border-slate-100 pt-8">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Purchase & Billing</p>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                    Orders {orderTotals.orderCount} · Items {orderTotals.totalItems} · Amount ₹{Number(orderTotals.totalAmount || 0).toLocaleString("en-IN")}
+                  </div>
+                </div>
+
+                {ordersLoading ? (
+                  <div className="text-sm text-slate-400">Loading purchase history...</div>
+                ) : ordersError ? (
+                  <div className="text-sm text-red-600">{ordersError}</div>
+                ) : orderHistory.length === 0 ? (
+                  <div className="text-sm text-slate-400">No purchases found for this customer.</div>
+                ) : (
+                  <div className="space-y-3 max-h-64 overflow-auto pr-1">
+                    {orderHistory.map((order) => (
+                      <div key={order._id} className="border border-slate-100 rounded-2xl p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                          <p className="text-xs font-black text-slate-800">Bill #{String(order._id).slice(-8).toUpperCase()}</p>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase">{new Date(order.createdAt).toLocaleString("en-IN")}</p>
+                        </div>
+                        <div className="text-xs text-slate-600 mb-1">
+                          {(order.orderItems || []).map((it) => `${it.name} x${it.quantity}`).join(", ") || "No items"}
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-[10px] font-bold uppercase text-slate-500">Status: {order.orderStatus}</p>
+                          <p className="text-[10px] font-bold uppercase text-slate-500">
+                            Payment: {order.paymentInfo?.method || "UPI"} · {order.paymentInfo?.status || "pending"}
+                          </p>
+                          <p className="text-sm font-black text-emerald-700">₹{Number(order.totalPrice || 0).toLocaleString("en-IN")}</p>
+                        </div>
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          UPI: {order.paymentInfo?.upiId || "—"} | Phone: {order.paymentInfo?.phoneNo || "—"} | Ref: {order.paymentInfo?.scannerRef || "—"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

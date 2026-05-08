@@ -5,7 +5,9 @@ import {
 } from "react-icons/lu";
 import { useAuth } from "../context/AuthContext";
 
-const API_BASE = import.meta.env.VITE_API_URL || "https://greenbeli.in";
+const API_BASE = (import.meta.env.VITE_API_URL || "https://greenbeli.in")
+  .replace(/\/+$/, "")
+  .replace(/\/api$/, "");
 
 export default function Leads() {
   const { token, isSuperAdmin } = useAuth();
@@ -18,12 +20,12 @@ export default function Leads() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_BASE}/api/leads`, {
+      const res = await fetch(`${API_BASE}/api/admin/leads`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Failed to fetch leads");
-      setLeads(data);
+      setLeads(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -37,7 +39,7 @@ export default function Leads() {
 
   const updateStatus = async (id, status) => {
     try {
-      const res = await fetch(`${API_BASE}/api/leads/${id}`, {
+      const res = await fetch(`${API_BASE}/api/admin/leads/${id}`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
@@ -45,22 +47,32 @@ export default function Leads() {
         },
         body: JSON.stringify({ status }),
       });
-      if (res.ok) fetchLeads();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.message || "Failed to update status");
+        return;
+      }
+      fetchLeads();
     } catch (err) {
-      console.error("Update error:", err);
+      setError(err.message || "Update error");
     }
   };
 
   const deleteLead = async (id) => {
     if (!window.confirm("Delete this inquiry permanently?")) return;
     try {
-      const res = await fetch(`${API_BASE}/api/leads/${id}`, {
+      const res = await fetch(`${API_BASE}/api/admin/leads/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) fetchLeads();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.message || "Failed to delete lead");
+        return;
+      }
+      fetchLeads();
     } catch (err) {
-      console.error("Delete error:", err);
+      setError(err.message || "Delete error");
     }
   };
 

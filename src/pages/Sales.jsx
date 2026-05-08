@@ -6,6 +6,23 @@ import { useAuth } from "../context/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_URL || "https://greenbeli.in";
 
+function formatRelativeTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  const diffMs = Date.now() - date.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(months / 12)}y ago`;
+}
+
 export default function Sales() {
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -16,6 +33,10 @@ export default function Sales() {
   const [summary, setSummary] = useState({
     totals: { totalQuantity: 0, totalAmount: 0, saleCount: 0 },
     byAdmin: [],
+  });
+  const [productSummary, setProductSummary] = useState({
+    totals: { products: 0, saleCount: 0, soldQuantity: 0, totalAmount: 0, remainingStock: 0 },
+    items: [],
   });
 
   const [from, setFrom] = useState("");
@@ -99,6 +120,38 @@ export default function Sales() {
     [token, page, from, to, productId]
   );
 
+  const loadProductSummary = useCallback(async () => {
+    setError("");
+    try {
+      const qs = new URLSearchParams();
+      if (from) qs.set("from", from);
+      if (to) qs.set("to", to);
+      if (productId) qs.set("productId", productId);
+      const res = await fetch(`${API_BASE}/api/sales/product-summary?${qs}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.message || "Could not load complete product report");
+        setProductSummary({
+          totals: { products: 0, saleCount: 0, soldQuantity: 0, totalAmount: 0, remainingStock: 0 },
+          items: [],
+        });
+        return;
+      }
+      setProductSummary({
+        totals: data.totals || { products: 0, saleCount: 0, soldQuantity: 0, totalAmount: 0, remainingStock: 0 },
+        items: data.items || [],
+      });
+    } catch {
+      setError("Network error");
+      setProductSummary({
+        totals: { products: 0, saleCount: 0, soldQuantity: 0, totalAmount: 0, remainingStock: 0 },
+        items: [],
+      });
+    }
+  }, [token, from, to, productId]);
+
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
@@ -108,11 +161,16 @@ export default function Sales() {
   }, [loadSummary]);
 
   useEffect(() => {
+    loadProductSummary();
+  }, [loadProductSummary]);
+
+  useEffect(() => {
     fetchSales();
   }, [fetchSales]);
 
   const handleRefresh = () => {
     loadSummary();
+    loadProductSummary();
     fetchSales();
   };
 
@@ -149,6 +207,15 @@ export default function Sales() {
   };
 
   const totals = summary.totals || { totalQuantity: 0, totalAmount: 0, saleCount: 0 };
+  const salesByProduct = items.reduce((acc, sale) => {
+    const key = String(sale?.productId?._id || sale?.productId || "unknown");
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(sale);
+    return acc;
+  }, {});
+  const productStats = productSummary.items || [];
+  const soldProductsCount = Number(productSummary?.totals?.products || 0);
+  const remainingStockAcrossSoldProducts = Number(productSummary?.totals?.remainingStock || 0);
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-10">
@@ -173,11 +240,12 @@ export default function Sales() {
         <div className="rounded-2xl border border-red-100 bg-red-50 text-red-700 text-sm font-semibold px-4 py-3">{error}</div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
         {[
           { label: "Total Revenue", value: `₹${Number(totals.totalAmount || 0).toLocaleString("en-IN")}`, sub: "Filtered range", icon: <LuTrendingUp /> },
           { label: "Items Sold", value: String(totals.totalQuantity ?? 0), sub: "Total unit count", icon: <LuPackage /> },
           { label: "Records", value: String(totals.saleCount ?? 0), sub: "Total transactions", icon: <LuFileText /> },
+          { label: "Products Sold", value: String(soldProductsCount), sub: `Remaining stock ${remainingStockAcrossSoldProducts}`, icon: <LuPackage /> },
         ].map((stat, i) => (
           <div
             key={i}
@@ -305,20 +373,34 @@ export default function Sales() {
                 <tr>
                   <th className="px-8 py-4">When</th>
                   <th className="px-4 py-4">Product</th>
+                  <th className="px-4 py-4">SKU</th>
                   <th className="px-4 py-4">Qty</th>
                   <th className="px-4 py-4">Amount</th>
+                  <th className="px-4 py-4">Stock Left</th>
+                  <th className="px-4 py-4">Sold Ago</th>
                   <th className="px-8 py-4">Receipt</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((s) => (
-                  <tr key={s._id} className="border-t border-slate-50 hover:bg-slate-50/50">
+                  <tr
+                    key={s._id}
+                    onClick={() => navigate(`/sales/${s._id}`)}
+                    className="border-t border-slate-50 hover:bg-slate-50/50 cursor-pointer"
+                  >
                     <td className="px-8 py-4 text-xs text-slate-500">{new Date(s.createdAt).toLocaleString("en-IN")}</td>
                     <td className="px-4 py-4 font-bold text-slate-800">{s.productId?.name || "—"}</td>
+                    <td className="px-4 py-4 text-xs text-slate-500">{s.productId?.sku || "—"}</td>
                     <td className="px-4 py-4">{s.quantity}</td>
                     <td className="px-4 py-4 font-black">₹{Number(s.totalAmount || 0).toLocaleString("en-IN")}</td>
+                    <td className="px-4 py-4">{s.productId?.stock ?? "—"}</td>
+                    <td className="px-4 py-4 text-xs text-slate-500">{formatRelativeTime(s.createdAt)}</td>
                     <td className="px-8 py-4">
-                      <Link to={`/sales/${s._id}`} className="text-emerald-700 font-black text-xs uppercase tracking-widest hover:underline">
+                      <Link
+                        to={`/sales/${s._id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-emerald-700 font-black text-xs uppercase tracking-widest hover:underline"
+                      >
                         View
                       </Link>
                     </td>
@@ -350,6 +432,61 @@ export default function Sales() {
             </button>
           </div>
         </div>
+      </section>
+
+      <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center flex-wrap gap-2">
+          <h2 className="text-sm font-black uppercase tracking-widest text-slate-800">Product-wise Sales Details</h2>
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Complete filtered report (all pages)</div>
+        </div>
+        {productStats.length === 0 ? (
+          <div className="p-8 text-sm text-slate-400">No product sales data yet.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50/80 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <tr>
+                  <th className="px-8 py-4">Product</th>
+                  <th className="px-4 py-4">SKU</th>
+                  <th className="px-4 py-4">Units Sold</th>
+                  <th className="px-4 py-4">Sales Count</th>
+                  <th className="px-4 py-4">Revenue</th>
+                  <th className="px-4 py-4">Stock Left</th>
+                  <th className="px-4 py-4">Last Sale</th>
+                  <th className="px-8 py-4">Product Age</th>
+                  <th className="px-8 py-4">Receipts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {productStats.map((row) => (
+                  <tr key={row.key} className="border-t border-slate-50 hover:bg-slate-50/50">
+                    <td className="px-8 py-4 font-bold text-slate-800">{row.name}</td>
+                    <td className="px-4 py-4 text-xs text-slate-500">{row.sku}</td>
+                    <td className="px-4 py-4">{row.soldQuantity}</td>
+                    <td className="px-4 py-4">{row.saleCount}</td>
+                    <td className="px-4 py-4 font-black">₹{Number(row.totalAmount || 0).toLocaleString("en-IN")}</td>
+                    <td className="px-4 py-4">{row.currentStock}</td>
+                    <td className="px-4 py-4 text-xs text-slate-500">{formatRelativeTime(row.lastSoldAt)}</td>
+                    <td className="px-8 py-4 text-xs text-slate-500">{formatRelativeTime(row.productCreatedAt)}</td>
+                    <td className="px-8 py-4">
+                      {(salesByProduct[row.key] || []).length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/sales/${salesByProduct[row.key][0]._id}`)}
+                          className="text-emerald-700 font-black text-xs uppercase tracking-widest hover:underline"
+                        >
+                          Open ({(salesByProduct[row.key] || []).length})
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <style
