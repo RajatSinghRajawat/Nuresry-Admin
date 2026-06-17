@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { 
   LuUsers, LuMail, LuCalendar, LuRefreshCw, LuSearch, LuArrowRight, 
-  LuPhone, LuMapPin, LuUser, LuX, LuInfo, LuNavigation, LuZap
+  LuPhone, LuMapPin, LuUser, LuX, LuInfo, LuNavigation, LuZap, LuPlus
 } from "react-icons/lu";
 import { useAuth } from "../context/AuthContext";
 
@@ -20,6 +20,64 @@ export default function Customers() {
   const [ordersError, setOrdersError] = useState("");
   const [isLive, setIsLive] = useState(false);
   const pollingRef = useRef(null);
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    gender: "Male",
+    dateOfBirth: "",
+    address: {
+      street: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "India"
+    }
+  });
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState("");
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    setAdding(true);
+    setAddError("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/users`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(addForm)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to add customer");
+      }
+      setShowAddModal(false);
+      setAddForm({
+        name: "",
+        email: "",
+        phone: "",
+        gender: "Male",
+        dateOfBirth: "",
+        address: {
+          street: "",
+          city: "",
+          state: "",
+          postalCode: "",
+          country: "India"
+        }
+      });
+      fetchCustomers();
+    } catch (err) {
+      setAddError(err.message);
+    } finally {
+      setAdding(false);
+    }
+  };
 
   const fetchCustomers = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -128,6 +186,13 @@ export default function Customers() {
             />
           </div>
           <div className="flex gap-2">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-sm cursor-pointer"
+            >
+              <LuPlus size={16} />
+              Add Customer
+            </button>
             <button
               onClick={() => setIsLive(!isLive)}
               title={isLive ? "Disable Live Polling" : "Enable Live Polling (10s)"}
@@ -378,6 +443,175 @@ export default function Customers() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Customer Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
+          <div className="relative w-full max-w-xl bg-white rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-800 px-8 py-5 flex items-center justify-between text-white">
+              <div>
+                <h2 className="text-lg font-black tracking-tight">Add New Customer</h2>
+                <p className="text-[10px] text-emerald-100 font-bold uppercase tracking-wider mt-0.5">Create manual customer profile</p>
+              </div>
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="p-2 rounded-xl bg-white/20 hover:bg-white/40 text-white transition-colors"
+              >
+                <LuX size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddSubmit} className="p-8 space-y-5 max-h-[75vh] overflow-y-auto">
+              {addError && (
+                <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-semibold">
+                  {addError}
+                </div>
+              )}
+
+              {/* Basic Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[9px] font-black uppercase text-slate-400 ml-1">Full Name *</span>
+                  <input
+                    required
+                    type="text"
+                    value={addForm.name}
+                    onChange={(e) => setAddForm(f => ({ ...f, name: e.target.value }))}
+                    className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold focus:border-emerald-500 outline-none transition-all"
+                    placeholder="John Doe"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[9px] font-black uppercase text-slate-400 ml-1">Email Address *</span>
+                  <input
+                    required
+                    type="email"
+                    value={addForm.email}
+                    onChange={(e) => setAddForm(f => ({ ...f, email: e.target.value }))}
+                    className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold focus:border-emerald-500 outline-none transition-all"
+                    placeholder="john@example.com"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[9px] font-black uppercase text-slate-400 ml-1">Phone Number</span>
+                  <input
+                    type="text"
+                    pattern="[0-9]{10}"
+                    title="Phone number must be 10 digits"
+                    value={addForm.phone || ""}
+                    onChange={(e) => setAddForm(f => ({ ...f, phone: e.target.value }))}
+                    className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold focus:border-emerald-500 outline-none transition-all"
+                    placeholder="10-digit mobile number"
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[9px] font-black uppercase text-slate-400 ml-1">Gender</span>
+                    <select
+                      value={addForm.gender}
+                      onChange={(e) => setAddForm(f => ({ ...f, gender: e.target.value }))}
+                      className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold focus:border-emerald-500 outline-none transition-all"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[9px] font-black uppercase text-slate-400 ml-1">DOB</span>
+                    <input
+                      type="date"
+                      value={addForm.dateOfBirth}
+                      onChange={(e) => setAddForm(f => ({ ...f, dateOfBirth: e.target.value }))}
+                      className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold focus:border-emerald-500 outline-none transition-all"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Address Fields */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Address Details</p>
+                
+                <label className="flex flex-col gap-1">
+                  <span className="text-[9px] font-black uppercase text-slate-400 ml-1">Street Address</span>
+                  <input
+                    type="text"
+                    value={addForm.address.street}
+                    onChange={(e) => setAddForm(f => ({ ...f, address: { ...f.address, street: e.target.value } }))}
+                    className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold focus:border-emerald-500 outline-none transition-all"
+                    placeholder="Apartment, Lane, Street"
+                  />
+                </label>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[9px] font-black uppercase text-slate-400 ml-1">City</span>
+                    <input
+                      type="text"
+                      value={addForm.address.city}
+                      onChange={(e) => setAddForm(f => ({ ...f, address: { ...f.address, city: e.target.value } }))}
+                      className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold focus:border-emerald-500 outline-none transition-all"
+                      placeholder="e.g. Pune"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[9px] font-black uppercase text-slate-400 ml-1">State</span>
+                    <input
+                      type="text"
+                      value={addForm.address.state}
+                      onChange={(e) => setAddForm(f => ({ ...f, address: { ...f.address, state: e.target.value } }))}
+                      className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold focus:border-emerald-500 outline-none transition-all"
+                      placeholder="e.g. Maharashtra"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[9px] font-black uppercase text-slate-400 ml-1">Postal Code</span>
+                    <input
+                      type="text"
+                      pattern="[0-9]{5,6}"
+                      title="Invalid postal code (5 or 6 digits)"
+                      value={addForm.address.postalCode}
+                      onChange={(e) => setAddForm(f => ({ ...f, address: { ...f.address, postalCode: e.target.value } }))}
+                      className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold focus:border-emerald-500 outline-none transition-all"
+                      placeholder="e.g. 411001"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[9px] font-black uppercase text-slate-400 ml-1">Country</span>
+                    <input
+                      type="text"
+                      value={addForm.address.country}
+                      onChange={(e) => setAddForm(f => ({ ...f, address: { ...f.address, country: e.target.value } }))}
+                      className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold focus:border-emerald-500 outline-none transition-all"
+                      placeholder="e.g. India"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={adding}
+                  className="px-6 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white text-xs font-bold rounded-xl flex items-center gap-1.5"
+                >
+                  {adding ? "Adding..." : "Add Customer"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

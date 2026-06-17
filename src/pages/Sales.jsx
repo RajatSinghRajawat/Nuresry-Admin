@@ -332,6 +332,53 @@ export default function Sales() {
                 ))}
               </select>
             </label>
+
+            {/* Selected Product Preview Card (ERP Style) */}
+            {(() => {
+              const selectedQuickProduct = products.find(p => p._id === createProductId);
+              if (!selectedQuickProduct) return null;
+              return (
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex gap-4 transition-all duration-300">
+                  <div className="w-16 h-16 rounded-xl bg-white border border-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    <img
+                      src={selectedQuickProduct.image || (selectedQuickProduct.images && selectedQuickProduct.images[0]) || "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=150"}
+                      alt={selectedQuickProduct.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider truncate mr-2">
+                        SKU: {selectedQuickProduct.sku || "N/A"}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                        selectedQuickProduct.stock > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {selectedQuickProduct.stock > 0 ? `${selectedQuickProduct.stock} Left` : 'Out of Stock'}
+                      </span>
+                    </div>
+                    <h4 className="text-xs font-black text-slate-800 truncate capitalize">{selectedQuickProduct.name}</h4>
+                    
+                    <div className="flex items-baseline gap-2 pt-1">
+                      <span className="text-xs font-black text-emerald-700">
+                        ₹{selectedQuickProduct.price?.toLocaleString("en-IN")}
+                      </span>
+                      {selectedQuickProduct.mrp && selectedQuickProduct.mrp > selectedQuickProduct.price && (
+                        <span className="text-[10px] font-medium text-slate-400 line-through">
+                          ₹{selectedQuickProduct.mrp.toLocaleString("en-IN")}
+                        </span>
+                      )}
+                      {selectedQuickProduct.discount > 0 && (
+                        <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-1 rounded">
+                          -{selectedQuickProduct.discount}{selectedQuickProduct.discountType === 'percentage' ? '%' : ' OFF'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             <label className="flex flex-col gap-2">
               <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Quantity</span>
               <input className="admin-input-flat" type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
@@ -448,41 +495,61 @@ export default function Sales() {
                 <tr>
                   <th className="px-8 py-4">Product</th>
                   <th className="px-4 py-4">SKU</th>
+                  <th className="px-4 py-4">Total Stock</th>
                   <th className="px-4 py-4">Units Sold</th>
+                  <th className="px-4 py-4">Stock Left</th>
                   <th className="px-4 py-4">Sales Count</th>
                   <th className="px-4 py-4">Revenue</th>
-                  <th className="px-4 py-4">Stock Left</th>
+                  <th className="px-4 py-4">Stock Health</th>
                   <th className="px-4 py-4">Last Sale</th>
                   <th className="px-8 py-4">Product Age</th>
                   <th className="px-8 py-4">Receipts</th>
                 </tr>
               </thead>
               <tbody>
-                {productStats.map((row) => (
-                  <tr key={row.key} className="border-t border-slate-50 hover:bg-slate-50/50">
-                    <td className="px-8 py-4 font-bold text-slate-800">{row.name}</td>
-                    <td className="px-4 py-4 text-xs text-slate-500">{row.sku}</td>
-                    <td className="px-4 py-4">{row.soldQuantity}</td>
-                    <td className="px-4 py-4">{row.saleCount}</td>
-                    <td className="px-4 py-4 font-black">₹{Number(row.totalAmount || 0).toLocaleString("en-IN")}</td>
-                    <td className="px-4 py-4">{row.currentStock}</td>
-                    <td className="px-4 py-4 text-xs text-slate-500">{formatRelativeTime(row.lastSoldAt)}</td>
-                    <td className="px-8 py-4 text-xs text-slate-500">{formatRelativeTime(row.productCreatedAt)}</td>
-                    <td className="px-8 py-4">
-                      {(salesByProduct[row.key] || []).length > 0 ? (
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/sales/${salesByProduct[row.key][0]._id}`)}
-                          className="text-emerald-700 font-black text-xs uppercase tracking-widest hover:underline"
-                        >
-                          Open ({(salesByProduct[row.key] || []).length})
-                        </button>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {productStats.map((row) => {
+                  const totalStock = row.soldQuantity + row.currentStock;
+                  const soldPercentage = totalStock > 0 ? Math.round((row.soldQuantity / totalStock) * 100) : 0;
+                  return (
+                    <tr key={row.productId} className="border-t border-slate-50 hover:bg-slate-50/50">
+                      <td className="px-8 py-4 font-bold text-slate-800">{row.name}</td>
+                      <td className="px-4 py-4 text-xs text-slate-500">{row.sku}</td>
+                      <td className="px-4 py-4 font-semibold text-slate-700">{totalStock}</td>
+                      <td className="px-4 py-4 text-rose-600 font-bold">{row.soldQuantity}</td>
+                      <td className="px-4 py-4 text-emerald-600 font-bold">{row.currentStock}</td>
+                      <td className="px-4 py-4 text-slate-600">{row.saleCount}</td>
+                      <td className="px-4 py-4 font-black">₹{Number(row.totalAmount || 0).toLocaleString("en-IN")}</td>
+                      <td className="px-4 py-4 min-w-[100px]">
+                        <div className="flex flex-col gap-1">
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="bg-emerald-600 h-1.5 rounded-full transition-all duration-500"
+                              style={{ width: `${soldPercentage}%` }}
+                            />
+                          </div>
+                          <span className="text-[9px] font-black uppercase text-slate-400">
+                            {soldPercentage}% Sold
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-xs text-slate-500">{formatRelativeTime(row.lastSoldAt)}</td>
+                      <td className="px-8 py-4 text-xs text-slate-500">{formatRelativeTime(row.productCreatedAt)}</td>
+                      <td className="px-8 py-4">
+                        {(salesByProduct[row.productId] || []).length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/sales/${salesByProduct[row.productId][0]._id}`)}
+                            className="text-emerald-700 font-black text-xs uppercase tracking-widest hover:underline"
+                          >
+                            Open ({(salesByProduct[row.productId] || []).length})
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
