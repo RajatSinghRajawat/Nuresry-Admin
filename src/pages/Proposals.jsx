@@ -204,6 +204,186 @@ export default function Proposals() {
     }
   };
 
+  const handleDownloadProposal = (p) => {
+    const subtotal = p.items?.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.rate)), 0) || 0;
+    const gstAmount = p.gst ? Math.round(subtotal * 0.18) : 0;
+    const total = subtotal + gstAmount;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Please allow popups to download/print proposals");
+      return;
+    }
+
+    const itemsRows = p.items?.map((item, idx) => {
+      const prodInfo = products.find(prod => prod._id === (item.product?._id || item.product)) || {};
+      const name = prodInfo.name || item.itemName || "Item";
+      const categoryName = prodInfo.categoryId?.plantSegment || prodInfo.categoryId?.name || item.category || "—";
+      const hsn = item.hsnCode || prodInfo.sku || "06029090";
+      
+      return `
+        <tr>
+          <td style="border: 1px solid #e2e8f0; padding: 12px; font-size: 11px; text-align: center; color: #475569;">${idx + 1}</td>
+          <td style="border: 1px solid #e2e8f0; padding: 12px; font-size: 11px; font-weight: bold; color: #0f172a;">
+            ${name}
+          </td>
+          <td style="border: 1px solid #e2e8f0; padding: 12px; font-size: 11px; color: #475569;">${categoryName}</td>
+          <td style="border: 1px solid #e2e8f0; padding: 12px; font-size: 11px; color: #475569; text-align: center;">${hsn}</td>
+          <td style="border: 1px solid #e2e8f0; padding: 12px; font-size: 11px; text-align: center; font-weight: bold; color: #0f172a;">${item.quantity}</td>
+          <td style="border: 1px solid #e2e8f0; padding: 12px; font-size: 11px; text-align: right; color: #475569;">₹${(item.rate || 0).toLocaleString('en-IN')}</td>
+          <td style="border: 1px solid #e2e8f0; padding: 12px; font-size: 11px; text-align: right; font-weight: bold; color: #047857;">₹${((item.quantity || 0) * (item.rate || 0)).toLocaleString('en-IN')}</td>
+        </tr>
+      `;
+    }).join("") || "";
+
+    const html = `
+      <html>
+        <head>
+          <title>Quotation - ${p.clientName}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+            body { font-family: 'Inter', sans-serif; color: #1e293b; margin: 40px; line-height: 1.5; }
+            .invoice-card { max-width: 800px; margin: 0 auto; background: white; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #059669; padding-bottom: 24px; }
+            .logo-area { display: flex; align-items: center; gap: 8px; }
+            .logo-text { font-size: 24px; font-weight: 800; color: #065f46; letter-spacing: -0.025em; }
+            .meta-area { text-align: right; }
+            .title-badge { background: #ecfdf5; color: #047857; font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 12px; font-family: 'Inter', sans-serif; letter-spacing: 0.1em; display: inline-block; border: 1px solid #d1fae5; border-radius: 9999px; }
+            .proposal-id { font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 8px; tracking: -0.025em; }
+            .date-text { font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 600; }
+            .addresses { margin-top: 32px; display: grid; grid-template-cols: repeat(3, 1fr); gap: 24px; }
+            .address-col { background: #f8fafc; border: 1px solid #f1f5f9; padding: 16px; border-radius: 16px; }
+            .section-label { font-size: 9px; font-weight: 800; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.05em; margin-bottom: 8px; }
+            .address-val { font-size: 11px; font-weight: 600; color: #334155; }
+            .description-box { margin-top: 24px; padding: 16px; background: #f0fdf4; border-left: 4px solid #059669; border-radius: 12px; font-size: 12px; color: #065f46; font-weight: 600; }
+            table { width: 100%; border-collapse: collapse; margin-top: 32px; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; }
+            th { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; }
+            .totals-container { display: flex; justify-content: flex-end; margin-top: 24px; }
+            .totals-table { width: 280px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; }
+            .totals-row { display: flex; justify-content: space-between; font-size: 12px; padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #475569; }
+            .totals-row:last-child { border-bottom: none; }
+            .grand-total { font-size: 16px; font-weight: 800; color: #059669; padding-top: 12px; }
+            .rules { margin-top: 40px; display: grid; grid-template-cols: 1fr; gap: 20px; }
+            .rule-card { background: #f8fafc; border: 1px solid #f1f5f9; padding: 16px; border-radius: 16px; }
+            .footer { margin-top: 60px; text-align: center; border-top: 1px dashed #e2e8f0; padding-top: 24px; }
+            .footer-thank { font-size: 12px; font-weight: 800; color: #065f46; }
+            .footer-note { font-size: 10px; color: #94a3b8; margin-top: 4px; font-weight: 600; }
+            @media print {
+              body { margin: 20px; }
+              .address-col, .totals-table, .rule-card { background: #fff !important; border: 1px solid #e2e8f0 !important; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-card">
+            <div class="header">
+              <div>
+                <div class="logo-area">
+                  <span class="logo-text">🌱 Greenbeli Nursery</span>
+                </div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600;">B2B Supply & Landscaping Quotation</div>
+              </div>
+              <div class="meta-area">
+                <span class="title-badge">Quotation Proposal</span>
+                <div class="proposal-id">#${p.proposalId || p._id.slice(-6).toUpperCase()}</div>
+                <div class="date-text">Issued: ${new Date(p.date || p.createdAt).toLocaleDateString('en-IN')}</div>
+              </div>
+            </div>
+
+            <div class="addresses">
+              <div class="address-col">
+                <div class="section-label">Client Details</div>
+                <div class="address-val" style="font-weight: 800; font-size: 12px; color: #0f172a; margin-bottom: 4px;">${p.clientName}</div>
+                <div class="address-val">${p.emailId}</div>
+                <div class="address-val">${p.contactNumber || '—'}</div>
+              </div>
+              <div class="address-col">
+                <div class="section-label">Billing Address</div>
+                <div class="address-val">${p.address || '—'}</div>
+              </div>
+              <div class="address-col">
+                <div class="section-label">Delivery Site Address</div>
+                <div class="address-val">${p.shipToAddress || '—'}</div>
+              </div>
+            </div>
+
+            ${p.description ? `
+              <div class="description-box">
+                Project Scope: ${p.description}
+              </div>
+            ` : ''}
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 40px; text-align: center;">#</th>
+                  <th>Item Details</th>
+                  <th>Category</th>
+                  <th style="text-align: center; width: 90px;">HSN/SKU</th>
+                  <th style="text-align: center; width: 60px;">Qty</th>
+                  <th style="text-align: right; width: 90px;">Rate</th>
+                  <th style="text-align: right; width: 100px;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsRows}
+              </tbody>
+            </table>
+
+            <div class="totals-container">
+              <div class="totals-table">
+                <div class="totals-row">
+                  <span>Subtotal</span>
+                  <span style="font-weight: 600; color: #0f172a;">₹${subtotal.toLocaleString('en-IN')}</span>
+                </div>
+                ${p.gst ? `
+                  <div class="totals-row">
+                    <span>GST (18%)</span>
+                    <span style="font-weight: 600; color: #059669;">₹${gstAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                ` : ''}
+                <div class="totals-row grand-total">
+                  <span>Total Quote</span>
+                  <span>₹${total.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rules">
+              ${p.termsAndConditions ? `
+                <div class="rule-card">
+                  <div class="section-label">Terms & Conditions</div>
+                  <div style="font-size: 11px; color: #475569; font-weight: 600; white-space: pre-line;">${p.termsAndConditions}</div>
+                </div>
+              ` : ''}
+
+              ${p.note ? `
+                <div class="rule-card">
+                  <div class="section-label">Special Note</div>
+                  <div style="font-size: 11px; color: #475569; font-weight: 600; white-space: pre-line;">${p.note}</div>
+                </div>
+              ` : ''}
+            </div>
+
+            <div class="footer">
+              <div class="footer-thank">Thank you for your business interest!</div>
+              <div class="footer-note">This is a system generated B2B quote proposal which does not require a physical signature.</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   // Create Proposal
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -438,7 +618,11 @@ export default function Proposals() {
 
                     <td className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 text-slate-400 hover:text-emerald-600 transition-colors">
+                        <button
+                          onClick={() => handleDownloadProposal(p)}
+                          className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"
+                          title="Download / Print Proposal"
+                        >
                           <LuDownload size={18} />
                         </button>
                         <button
