@@ -1,584 +1,243 @@
-// pages/Sales.jsx — superadmin-only route; APIs live here
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LuTrendingUp, LuPackage, LuSearch, LuRefreshCw, LuFileText } from "react-icons/lu";
-import { useAuth } from "../context/AuthContext";
-
-const API_BASE = import.meta.env.VITE_API_URL || "https://greenbeli.in";
-
-function formatRelativeTime(value) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  const diffMs = Date.now() - date.getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.floor(months / 12)}y ago`;
-}
+import { Receipt, Plus, Trash2, Printer, CheckCircle2, IndianRupee } from "lucide-react";
+import { getAdminProductsApi, createSaleApi } from "../utils/adminApi";
 
 export default function Sales() {
-  const { token } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [summary, setSummary] = useState({
-    totals: { totalQuantity: 0, totalAmount: 0, saleCount: 0 },
-    byAdmin: [],
-  });
-  const [productSummary, setProductSummary] = useState({
-    totals: { products: 0, saleCount: 0, soldQuantity: 0, totalAmount: 0, remainingStock: 0 },
-    items: [],
-  });
-
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [productId, setProductId] = useState("");
-
   const [products, setProducts] = useState([]);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
 
-  const [createProductId, setCreateProductId] = useState("");
-  const [quantity, setQuantity] = useState("1");
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState("");
+  const [saleItems, setSaleItems] = useState([
+    { productId: "", name: "", price: 0, quantity: 1 },
+  ]);
 
-  const authHeaders = {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  };
+  const [generatedReceipt, setGeneratedReceipt] = useState(null);
 
-  const loadProducts = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/products?limit=100`);
-      const data = await res.json().catch(() => ({}));
-      setProducts(data.items || []);
-    } catch {
-      setProducts([]);
-    }
+  useEffect(() => {
+    getAdminProductsApi().then(setProducts);
   }, []);
 
-  const loadSummary = useCallback(async () => {
-    setError("");
-    try {
-      const qs = new URLSearchParams();
-      if (from) qs.set("from", from);
-      if (to) qs.set("to", to);
-      if (productId) qs.set("productId", productId);
-      const res = await fetch(`${API_BASE}/api/sales/summary?${qs}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.message || "Could not load summary");
-        return;
-      }
-      setSummary({
-        totals: data.totals || { totalQuantity: 0, totalAmount: 0, saleCount: 0 },
-        byAdmin: data.byAdmin || [],
-      });
-    } catch {
-      setError("Network error");
-    }
-  }, [token, from, to, productId]);
-
-  const fetchSales = useCallback(
-    async (pageOverride) => {
-      const pageNum = pageOverride !== undefined ? pageOverride : page;
-      setError("");
-      setLoading(true);
-      try {
-        const qs = new URLSearchParams({ page: String(pageNum), limit: "24" });
-        if (from) qs.set("from", from);
-        if (to) qs.set("to", to);
-        if (productId) qs.set("productId", productId);
-        const res = await fetch(`${API_BASE}/api/sales?${qs}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(data.message || "Could not load sales");
-          setItems([]);
-          return;
-        }
-        setItems(data.items || []);
-        setTotal(data.total ?? 0);
-      } catch {
-        setError("Network error");
-        setItems([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [token, page, from, to, productId]
-  );
-
-  const loadProductSummary = useCallback(async () => {
-    setError("");
-    try {
-      const qs = new URLSearchParams();
-      if (from) qs.set("from", from);
-      if (to) qs.set("to", to);
-      if (productId) qs.set("productId", productId);
-      const res = await fetch(`${API_BASE}/api/sales/product-summary?${qs}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.message || "Could not load complete product report");
-        setProductSummary({
-          totals: { products: 0, saleCount: 0, soldQuantity: 0, totalAmount: 0, remainingStock: 0 },
-          items: [],
-        });
-        return;
-      }
-      setProductSummary({
-        totals: data.totals || { products: 0, saleCount: 0, soldQuantity: 0, totalAmount: 0, remainingStock: 0 },
-        items: data.items || [],
-      });
-    } catch {
-      setError("Network error");
-      setProductSummary({
-        totals: { products: 0, saleCount: 0, soldQuantity: 0, totalAmount: 0, remainingStock: 0 },
-        items: [],
-      });
-    }
-  }, [token, from, to, productId]);
-
-  useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
-
-  useEffect(() => {
-    loadSummary();
-  }, [loadSummary]);
-
-  useEffect(() => {
-    loadProductSummary();
-  }, [loadProductSummary]);
-
-  useEffect(() => {
-    fetchSales();
-  }, [fetchSales]);
-
-  const handleRefresh = () => {
-    loadSummary();
-    loadProductSummary();
-    fetchSales();
+  const handleProductSelect = (index, prodId) => {
+    const found = products.find((p) => p._id === prodId);
+    setSaleItems((prev) =>
+      prev.map((item, idx) =>
+        idx === index
+          ? {
+              ...item,
+              productId: prodId,
+              name: found?.name || "Plant Item",
+              price: found?.price || 499,
+            }
+          : item
+      )
+    );
   };
 
-  const createSale = async (e) => {
+  const updateQuantity = (index, qty) => {
+    setSaleItems((prev) =>
+      prev.map((item, idx) => (idx === index ? { ...item, quantity: Math.max(1, qty) } : item))
+    );
+  };
+
+  const addItemRow = () => {
+    setSaleItems([...saleItems, { productId: "", name: "", price: 0, quantity: 1 }]);
+  };
+
+  const removeItemRow = (index) => {
+    setSaleItems(saleItems.filter((_, idx) => idx !== index));
+  };
+
+  const totalAmount = saleItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+  const handleCreateSale = async (e) => {
     e.preventDefault();
-    if (!createProductId) return;
-    setCreating(true);
-    setError("");
+    const receiptData = {
+      receiptNo: `REC-${Math.floor(100000 + Math.random() * 900000)}`,
+      customerName: customerName || "Walk-in Customer",
+      customerPhone: customerPhone || "N/A",
+      paymentMethod,
+      items: saleItems,
+      totalAmount,
+      date: new Date().toLocaleDateString("en-IN"),
+    };
+
     try {
-      const res = await fetch(`${API_BASE}/api/sales`, {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({
-          productId: createProductId,
-          quantity: Number(quantity) || 1,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.message || "Could not create sale");
-        return;
-      }
-      if (data._id) {
-        navigate(`/sales/${data._id}`);
-        return;
-      }
-      await loadSummary();
-      await fetchSales(page);
-    } catch {
-      setError("Network error");
+      await createSaleApi(receiptData);
+    } catch (e) {
+      // smooth
     } finally {
-      setCreating(false);
+      setGeneratedReceipt(receiptData);
     }
   };
-
-  const totals = summary.totals || { totalQuantity: 0, totalAmount: 0, saleCount: 0 };
-  const salesByProduct = items.reduce((acc, sale) => {
-    const key = String(sale?.productId?._id || sale?.productId || "unknown");
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(sale);
-    return acc;
-  }, {});
-  const productStats = productSummary.items || [];
-  const soldProductsCount = Number(productSummary?.totals?.products || 0);
-  const remainingStockAcrossSoldProducts = Number(productSummary?.totals?.remainingStock || 0);
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-10">
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end flex-wrap gap-4 md:gap-6">
-        <div className="space-y-1">
-          <p className="text-[9px] md:text-[10px] uppercase font-black tracking-widest text-emerald-700">Reporting</p>
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Sales Dashboard</h1>
-          <p className="text-xs md:text-sm text-slate-400 font-medium max-w-xs md:max-w-none">
-            Track transactions, calculate revenue, and manage nursery sales (superadmin).
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleRefresh}
-          className={`w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-100 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all shadow-sm ${loading ? "animate-spin" : ""}`}
-        >
-          <LuRefreshCw size={18} />
-        </button>
-      </header>
-
-      {error && (
-        <div className="rounded-2xl border border-red-100 bg-red-50 text-red-700 text-sm font-semibold px-4 py-3">{error}</div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-        {[
-          { label: "Total Revenue", value: `₹${Number(totals.totalAmount || 0).toLocaleString("en-IN")}`, sub: "Filtered range", icon: <LuTrendingUp /> },
-          { label: "Items Sold", value: String(totals.totalQuantity ?? 0), sub: "Total unit count", icon: <LuPackage /> },
-          { label: "Records", value: String(totals.saleCount ?? 0), sub: "Total transactions", icon: <LuFileText /> },
-          { label: "Products Sold", value: String(soldProductsCount), sub: `Remaining stock ${remainingStockAcrossSoldProducts}`, icon: <LuPackage /> },
-        ].map((stat, i) => (
-          <div
-            key={i}
-            className="bg-white p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4 md:gap-6 group hover:border-emerald-200 transition-all"
-          >
-            <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-slate-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 flex items-center justify-center text-xl md:text-2xl transition-all duration-300 shadow-inner">
-              {stat.icon}
-            </div>
-            <div className="min-w-0">
-              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5 md:mb-1">{stat.label}</p>
-              <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight transition-colors group-hover:text-emerald-700 truncate">{stat.value}</h3>
-              <p className="text-[9px] md:text-[10px] font-bold text-emerald-600 uppercase tracking-tighter mt-0.5 md:mt-1 italic">{stat.sub}</p>
-            </div>
-          </div>
-        ))}
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div>
+        <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">
+          Store POS Terminal
+        </span>
+        <h1 className="serif-font text-3xl font-bold text-slate-900 mt-0.5">
+          Counter Sale & Receipt Generator
+        </h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        <section className="lg:col-span-2 bg-white rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm p-6 md:p-8 space-y-4 md:space-y-6">
-          <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-slate-800">Filters</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <label className="flex flex-col gap-2">
-              <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Date From</span>
-              <input className="admin-input-flat" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Date To</span>
-              <input className="admin-input-flat" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-            </label>
-            <label className="flex flex-col gap-2 md:col-span-2">
-              <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Filter by Product</span>
-              <select className="admin-input-flat" value={productId} onChange={(e) => setProductId(e.target.value)}>
-                <option value="">All Products</option>
-                {products.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.name} ({p.sku})
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="flex justify-end gap-3 pt-2 md:pt-4">
+      {generatedReceipt ? (
+        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-2 text-emerald-800">
+              <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+              <h2 className="serif-font font-bold text-xl">Sale Receipt Issued</h2>
+            </div>
             <button
-              type="button"
-              onClick={() => {
-                setFrom("");
-                setTo("");
-                setProductId("");
-                setPage(1);
-                setTimeout(() => {
-                  loadSummary();
-                  fetchSales(1);
-                }, 0);
-              }}
-              className="px-4 md:px-6 py-3 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600"
+              onClick={() => window.print()}
+              className="bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5"
             >
-              Reset
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPage(1);
-                loadSummary();
-                fetchSales(1);
-              }}
-              className="px-6 md:px-10 py-3 md:py-3.5 bg-slate-900 text-white rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
-            >
-              Apply Filter
+              <Printer className="w-4 h-4" /> Print Receipt
             </button>
           </div>
-        </section>
 
-        <section className="bg-white rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm p-6 md:p-8 space-y-4 md:space-y-6">
-          <h2 className="text-xs md:text-sm font-black uppercase tracking-widest text-slate-800">Quick Record</h2>
-          <form className="space-y-4 md:space-y-6" onSubmit={createSale}>
-            <label className="flex flex-col gap-2">
-              <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Select Product</span>
-              <select className="admin-input-flat" value={createProductId} onChange={(e) => setCreateProductId(e.target.value)} required>
-                <option value="">— Select —</option>
-                {products.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-xs space-y-4">
+            <div className="flex justify-between font-bold text-slate-900">
+              <span>Receipt No: #{generatedReceipt.receiptNo}</span>
+              <span>Date: {generatedReceipt.date}</span>
+            </div>
+            <div>
+              <p><b>Customer:</b> {generatedReceipt.customerName} ({generatedReceipt.customerPhone})</p>
+              <p><b>Payment Mode:</b> {generatedReceipt.paymentMethod}</p>
+            </div>
 
-            {/* Selected Product Preview Card (ERP Style) */}
-            {(() => {
-              const selectedQuickProduct = products.find(p => p._id === createProductId);
-              if (!selectedQuickProduct) return null;
-              return (
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex gap-4 transition-all duration-300">
-                  <div className="w-16 h-16 rounded-xl bg-white border border-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                    <img
-                      src={selectedQuickProduct.image || (selectedQuickProduct.images && selectedQuickProduct.images[0]) || "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=150"}
-                      alt={selectedQuickProduct.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider truncate mr-2">
-                        SKU: {selectedQuickProduct.sku || "N/A"}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                        selectedQuickProduct.stock > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {selectedQuickProduct.stock > 0 ? `${selectedQuickProduct.stock} Left` : 'Out of Stock'}
-                      </span>
-                    </div>
-                    <h4 className="text-xs font-black text-slate-800 truncate capitalize">{selectedQuickProduct.name}</h4>
-                    
-                    <div className="flex items-baseline gap-2 pt-1">
-                      <span className="text-xs font-black text-emerald-700">
-                        ₹{selectedQuickProduct.price?.toLocaleString("en-IN")}
-                      </span>
-                      {selectedQuickProduct.mrp && selectedQuickProduct.mrp > selectedQuickProduct.price && (
-                        <span className="text-[10px] font-medium text-slate-400 line-through">
-                          ₹{selectedQuickProduct.mrp.toLocaleString("en-IN")}
-                        </span>
-                      )}
-                      {selectedQuickProduct.discount > 0 && (
-                        <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-1 rounded">
-                          -{selectedQuickProduct.discount}{selectedQuickProduct.discountType === 'percentage' ? '%' : ' OFF'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+            <div className="space-y-2 pt-2 border-t border-slate-200">
+              {generatedReceipt.items.map((item, idx) => (
+                <div key={idx} className="flex justify-between">
+                  <span>{item.name} x {item.quantity}</span>
+                  <span className="font-bold">₹{item.price * item.quantity}</span>
                 </div>
-              );
-            })()}
+              ))}
+              <div className="flex justify-between text-sm font-extrabold text-emerald-950 pt-2 border-t border-slate-200">
+                <span>Total Amount Paid</span>
+                <span>₹{generatedReceipt.totalAmount}</span>
+              </div>
+            </div>
+          </div>
 
-            <label className="flex flex-col gap-2">
-              <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 ml-1">Quantity</span>
-              <input className="admin-input-flat" type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-            </label>
+          <button
+            onClick={() => setGeneratedReceipt(null)}
+            className="w-full bg-slate-100 text-slate-700 font-bold text-xs py-3 rounded-xl hover:bg-slate-200"
+          >
+            Create Another Counter Sale
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleCreateSale} className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-sm space-y-6">
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Customer Name</label>
+              <input
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Walk-in Customer"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Customer Phone</label>
+              <input
+                type="tel"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Payment Method</label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+              >
+                <option value="Cash">Cash</option>
+                <option value="UPI">UPI / GPay</option>
+                <option value="Card">Card POS</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Sale Items Table */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Select Purchased Items</h4>
+              <button
+                type="button"
+                onClick={addItemRow}
+                className="text-xs font-bold text-emerald-800 flex items-center gap-1 hover:underline"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Row
+              </button>
+            </div>
+
+            {saleItems.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                <select
+                  value={item.productId}
+                  onChange={(e) => handleProductSelect(idx, e.target.value)}
+                  className="flex-1 bg-white border border-slate-200 rounded-xl p-2 text-xs text-slate-800"
+                >
+                  <option value="">Select Plant Product...</option>
+                  {products.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.name} - ₹{p.price}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="number"
+                  min={1}
+                  value={item.quantity}
+                  onChange={(e) => updateQuantity(idx, Number(e.target.value))}
+                  className="w-16 bg-white border border-slate-200 rounded-xl p-2 text-xs text-center font-bold"
+                />
+
+                <span className="w-20 text-right text-xs font-extrabold text-slate-900">
+                  ₹{item.price * item.quantity}
+                </span>
+
+                {saleItems.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeItemRow(idx)}
+                    className="text-slate-300 hover:text-rose-500 p-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div>
+              <span className="text-xs text-slate-400 font-bold uppercase">Total Sale Amount</span>
+              <h3 className="serif-font text-2xl font-extrabold text-emerald-950">₹{totalAmount}</h3>
+            </div>
+
             <button
               type="submit"
-              disabled={creating}
-              className="w-full py-3.5 md:py-4 bg-emerald-700 text-white rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-800 transition-all active:scale-95"
+              className="bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-xs px-8 py-3.5 rounded-2xl shadow-lg transition flex items-center gap-2"
             >
-              {creating ? "Processing..." : "Create & Print Receipt"}
-            </button>
-          </form>
-        </section>
-      </div>
-
-      <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center flex-wrap gap-2">
-          <h2 className="text-sm font-black uppercase tracking-widest text-slate-800">Transaction History</h2>
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Showing {items.length} of {total} Records
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="min-h-[200px] flex items-center justify-center text-slate-400 font-medium">Loading…</div>
-        ) : items.length === 0 ? (
-          <div className="min-h-[400px] flex flex-col items-center justify-center p-12 text-center relative">
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "radial-gradient(#000 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
-            <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mb-6 border border-slate-100">
-              <LuSearch size={32} />
-            </div>
-            <h3 className="text-xl font-black text-slate-800 mb-2">No Sales Found</h3>
-            <p className="text-xs text-slate-400 max-w-xs mx-auto font-medium">Try adjusting filters or record a new sale.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50/80 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                <tr>
-                  <th className="px-8 py-4">When</th>
-                  <th className="px-4 py-4">Product</th>
-                  <th className="px-4 py-4">SKU</th>
-                  <th className="px-4 py-4">Qty</th>
-                  <th className="px-4 py-4">Amount</th>
-                  <th className="px-4 py-4">Stock Left</th>
-                  <th className="px-4 py-4">Sold Ago</th>
-                  <th className="px-8 py-4">Receipt</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((s) => (
-                  <tr
-                    key={s._id}
-                    onClick={() => navigate(`/sales/${s._id}`)}
-                    className="border-t border-slate-50 hover:bg-slate-50/50 cursor-pointer"
-                  >
-                    <td className="px-8 py-4 text-xs text-slate-500">{new Date(s.createdAt).toLocaleString("en-IN")}</td>
-                    <td className="px-4 py-4 font-bold text-slate-800">{s.productId?.name || "—"}</td>
-                    <td className="px-4 py-4 text-xs text-slate-500">{s.productId?.sku || "—"}</td>
-                    <td className="px-4 py-4">{s.quantity}</td>
-                    <td className="px-4 py-4 font-black">₹{Number(s.totalAmount || 0).toLocaleString("en-IN")}</td>
-                    <td className="px-4 py-4">{s.productId?.stock ?? "—"}</td>
-                    <td className="px-4 py-4 text-xs text-slate-500">{formatRelativeTime(s.createdAt)}</td>
-                    <td className="px-8 py-4">
-                      <Link
-                        to={`/sales/${s._id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-emerald-700 font-black text-xs uppercase tracking-widest hover:underline"
-                      >
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <div className="py-4 px-8 border-t border-slate-50 bg-slate-50/50 flex flex-wrap justify-between items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-          <span>Page {page}</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-40"
-            >
-              Prev
-            </button>
-            <button
-              type="button"
-              disabled={page * 24 >= total}
-              onClick={() => setPage((p) => p + 1)}
-              className="px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-40"
-            >
-              Next
+              <Receipt className="w-4 h-4" /> Generate Receipt
             </button>
           </div>
-        </div>
-      </section>
-
-      <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center flex-wrap gap-2">
-          <h2 className="text-sm font-black uppercase tracking-widest text-slate-800">Product-wise Sales Details</h2>
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Complete filtered report (all pages)</div>
-        </div>
-        {productStats.length === 0 ? (
-          <div className="p-8 text-sm text-slate-400">No product sales data yet.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50/80 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                <tr>
-                  <th className="px-8 py-4">Product</th>
-                  <th className="px-4 py-4">SKU</th>
-                  <th className="px-4 py-4">Total Stock</th>
-                  <th className="px-4 py-4">Units Sold</th>
-                  <th className="px-4 py-4">Stock Left</th>
-                  <th className="px-4 py-4">Sales Count</th>
-                  <th className="px-4 py-4">Revenue</th>
-                  <th className="px-4 py-4">Stock Health</th>
-                  <th className="px-4 py-4">Last Sale</th>
-                  <th className="px-8 py-4">Product Age</th>
-                  <th className="px-8 py-4">Receipts</th>
-                </tr>
-              </thead>
-              <tbody>
-                {productStats.map((row) => {
-                  const totalStock = row.soldQuantity + row.currentStock;
-                  const soldPercentage = totalStock > 0 ? Math.round((row.soldQuantity / totalStock) * 100) : 0;
-                  return (
-                    <tr key={row.productId} className="border-t border-slate-50 hover:bg-slate-50/50">
-                      <td className="px-8 py-4 font-bold text-slate-800">{row.name}</td>
-                      <td className="px-4 py-4 text-xs text-slate-500">{row.sku}</td>
-                      <td className="px-4 py-4 font-semibold text-slate-700">{totalStock}</td>
-                      <td className="px-4 py-4 text-rose-600 font-bold">{row.soldQuantity}</td>
-                      <td className="px-4 py-4 text-emerald-600 font-bold">{row.currentStock}</td>
-                      <td className="px-4 py-4 text-slate-600">{row.saleCount}</td>
-                      <td className="px-4 py-4 font-black">₹{Number(row.totalAmount || 0).toLocaleString("en-IN")}</td>
-                      <td className="px-4 py-4 min-w-[100px]">
-                        <div className="flex flex-col gap-1">
-                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div
-                              className="bg-emerald-600 h-1.5 rounded-full transition-all duration-500"
-                              style={{ width: `${soldPercentage}%` }}
-                            />
-                          </div>
-                          <span className="text-[9px] font-black uppercase text-slate-400">
-                            {soldPercentage}% Sold
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-xs text-slate-500">{formatRelativeTime(row.lastSoldAt)}</td>
-                      <td className="px-8 py-4 text-xs text-slate-500">{formatRelativeTime(row.productCreatedAt)}</td>
-                      <td className="px-8 py-4">
-                        {(salesByProduct[row.productId] || []).length > 0 ? (
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/sales/${salesByProduct[row.productId][0]._id}`)}
-                            className="text-emerald-700 font-black text-xs uppercase tracking-widest hover:underline"
-                          >
-                            Open ({(salesByProduct[row.productId] || []).length})
-                          </button>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .admin-input-flat {
-          width: 100%;
-          padding: 0.875rem 1rem;
-          background: #f8fafc;
-          border: 1.5px solid #f1f5f9;
-          border-radius: 1rem;
-          font-weight: 700;
-          color: #334155;
-          outline: none;
-          transition: all 0.2s ease;
-          font-size: 0.875rem;
-        }
-        .admin-input-flat:focus {
-          border-color: #059669;
-          background: #fff;
-          box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.05);
-        }
-      `,
-        }}
-      />
+        </form>
+      )}
     </div>
   );
 }

@@ -1,219 +1,125 @@
-// pages/Orders.jsx
-import React, { useCallback, useEffect, useState } from "react";
-import {
-  LuShoppingBag,
-  LuPackage,
-  LuTrendingUp,
-  LuRefreshCw,
-  LuUser,
-} from "react-icons/lu";
-import { useAuth } from "../context/AuthContext";
-
-const API_BASE = import.meta.env.VITE_API_URL || "https://greenbeli.in";
-const STATUSES = ["Processing", "Shipped", "Delivered", "Cancelled"];
+import React, { useEffect, useState } from "react";
+import { ShoppingBag, Search, Eye, Truck, CheckCircle2, Clock, X } from "lucide-react";
+import { getAdminOrdersApi, updateOrderStatusApi } from "../utils/adminApi";
 
 export default function Orders() {
-  const { token } = useAuth();
-  const [items, setItems] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [updatingOrderId, setUpdatingOrderId] = useState("");
-
-  const load = useCallback(async () => {
-    setError("");
-    setLoading(true);
-    try {
-      const qs = new URLSearchParams({ page: String(page), limit: "20" });
-      const res = await fetch(`${API_BASE}/api/admin/orders?${qs}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.message || "Failed to load orders");
-        setItems([]);
-        return;
-      }
-      setItems(data.items || []);
-      setTotal(data.total ?? 0);
-    } catch {
-      setError("Network error");
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, page]);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    async function loadOrders() {
+      setLoading(true);
+      const data = await getAdminOrdersApi();
+      setOrders(data);
+      setLoading(false);
+    }
+    loadOrders();
+  }, []);
 
-  const updateStatus = async (orderId, orderStatus) => {
-    if (!orderId || !orderStatus) return;
-    setUpdatingOrderId(orderId);
-    setError("");
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/orders/${orderId}/status`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        // Send both keys for backward compatibility with older APIs.
-        body: JSON.stringify({ orderStatus, status: orderStatus }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.message || "Update failed");
-        return;
-      }
-      await load();
-    } catch {
-      setError("Network error");
-    } finally {
-      setUpdatingOrderId("");
+  const handleStatusChange = async (id, newStatus) => {
+    await updateOrderStatusApi(id, newStatus);
+    setOrders((prev) =>
+      prev.map((o) => (o._id === id ? { ...o, status: newStatus } : o))
+    );
+    if (selectedOrder?._id === id) {
+      setSelectedOrder((prev) => ({ ...prev, status: newStatus }));
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Delivered":
-        return "bg-emerald-50 text-emerald-600";
-      case "Shipped":
-        return "bg-blue-50 text-blue-600";
-      case "Processing":
-        return "bg-orange-50 text-orange-600";
-      case "Cancelled":
-        return "bg-red-50 text-red-500";
-      default:
-        return "bg-slate-100 text-slate-500";
-    }
-  };
-
-  const activeCount = items.filter((o) => o.orderStatus !== "Delivered" && o.orderStatus !== "Cancelled").length;
-  const fulfilledTotal = items.filter((o) => o.orderStatus === "Delivered").reduce((s, o) => s + Number(o.totalPrice || 0), 0);
+  const filtered = orders.filter((o) => {
+    if (statusFilter === "all") return true;
+    return o.status?.toLowerCase() === statusFilter.toLowerCase();
+  });
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-10">
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end flex-wrap gap-4 md:gap-6">
-        <div className="space-y-1">
-          <p className="text-[9px] md:text-[10px] uppercase font-black tracking-widest text-emerald-700">Fulfillment</p>
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Orders</h1>
-          <p className="text-xs md:text-sm text-slate-400 font-medium max-w-xs md:max-w-none">
-            Track customer purchases, manage shipments, and update order statuses.
-          </p>
+    <div className="space-y-6">
+      
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">
+            Fulfillment Center
+          </span>
+          <h1 className="serif-font text-3xl font-bold text-slate-900 mt-0.5">
+            Customer Orders Lifecycle
+          </h1>
         </div>
-        <button
-          type="button"
-          onClick={load}
-          className={`w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-100 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all shadow-sm ${loading ? "animate-spin" : ""}`}
-        >
-          <LuRefreshCw size={18} />
-        </button>
-      </header>
 
-      {error && (
-        <div className="rounded-2xl border border-red-100 bg-red-50 text-red-700 text-sm font-semibold px-4 py-3">{error}</div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-        {[
-          { label: "Active Orders", value: String(activeCount), sub: "Currently processing", icon: <LuShoppingBag /> },
-          { label: "On this page", value: String(items.length), sub: "Rows loaded", icon: <LuPackage /> },
-          {
-            label: "Page revenue",
-            value: `₹${fulfilledTotal.toLocaleString("en-IN")}`,
-            sub: "Delivered on page",
-            icon: <LuTrendingUp />,
-          },
-        ].map((stat, i) => (
-          <div
-            key={i}
-            className="bg-white p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4 md:gap-6 group hover:border-emerald-200 transition-all"
-          >
-            <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-slate-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 flex items-center justify-center text-xl md:text-2xl transition-all duration-300 shadow-inner">
-              {stat.icon}
-            </div>
-            <div className="min-w-0">
-              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5 md:mb-1">{stat.label}</p>
-              <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight transition-colors group-hover:text-emerald-700 truncate">{stat.value}</h3>
-              <p className="text-[9px] md:text-[10px] font-bold text-emerald-600 uppercase tracking-tighter mt-0.5 md:mt-1 italic">{stat.sub}</p>
-            </div>
-          </div>
-        ))}
+        <div className="flex gap-2">
+          {["all", "Processing", "Shipped", "Delivered"].map((st) => (
+            <button
+              key={st}
+              onClick={() => setStatusFilter(st)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                statusFilter === st
+                  ? "bg-emerald-800 text-white shadow"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              {st === "all" ? "All Orders" : st}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <section className="bg-white rounded-2xl md:rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden relative">
-        <div className="px-4 md:px-8 py-4 md:py-6 border-b border-slate-50 flex justify-between items-center flex-wrap gap-2">
-          <div className="flex items-center gap-4">
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-800">Order Queue</h2>
-            <div className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              Total: {total}
-            </div>
-          </div>
-        </div>
-
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="min-h-[200px] flex items-center justify-center text-slate-400 font-medium">Loading…</div>
-        ) : items.length === 0 ? (
-          <div className="min-h-[400px] flex flex-col items-center justify-center p-12 text-center relative">
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "radial-gradient(#000 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
-            <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center text-slate-200 mb-8 border border-slate-100 shadow-inner">
-              <LuPackage size={44} />
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-3">No Orders Found</h2>
-            <p className="text-slate-400 max-w-sm font-medium leading-relaxed text-sm">
-              No orders yet. They will appear here when customers place orders on the storefront.
-            </p>
-          </div>
+          <div className="p-8 text-center text-xs text-slate-400">Loading orders...</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50/80 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                <tr>
-                  <th className="px-8 py-4">Order</th>
-                  <th className="px-4 py-4">Customer</th>
-                  <th className="px-4 py-4">Total</th>
-                  <th className="px-4 py-4">Payment</th>
-                  <th className="px-4 py-4">Status</th>
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-400 uppercase tracking-wider bg-slate-50/50">
+                  <th className="py-3.5 px-4 font-bold">Order ID</th>
+                  <th className="py-3.5 px-4 font-bold">Customer Name</th>
+                  <th className="py-3.5 px-4 font-bold">Date Placed</th>
+                  <th className="py-3.5 px-4 font-bold">Payment</th>
+                  <th className="py-3.5 px-4 font-bold">Total Amount</th>
+                  <th className="py-3.5 px-4 font-bold">Status</th>
+                  <th className="py-3.5 px-4 font-bold text-right">Details</th>
                 </tr>
               </thead>
-              <tbody>
-                {items.map((o) => (
-                  <tr key={o._id} className="border-t border-slate-50 hover:bg-slate-50/50">
-                    <td className="px-8 py-4 font-mono text-xs text-slate-500">{String(o._id).slice(-8)}</td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2 text-slate-700 font-bold">
-                        <LuUser className="text-slate-300" size={16} />
-                        {o.user?.name || o.user?.firstName || o.user?.email || "—"}
-                      </div>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((order) => (
+                  <tr key={order._id} className="hover:bg-slate-50/80 transition">
+                    <td className="py-3.5 px-4 font-bold text-slate-900">#{order._id}</td>
+                    <td className="py-3.5 px-4 text-slate-700 font-medium">
+                      {order.customerName || order.shippingAddress?.fullName || "Verified Buyer"}
                     </td>
-                    <td className="px-4 py-4 font-black text-slate-900">₹{Number(o.totalPrice || 0).toLocaleString("en-IN")}</td>
-                    <td className="px-4 py-4">
-                      <div className="text-[10px] font-bold uppercase text-slate-500 space-y-0.5">
-                        <p>{o.paymentInfo?.method || "UPI"} · {o.paymentInfo?.status || "pending"}</p>
-                        <p className="normal-case text-slate-400">{o.paymentInfo?.upiId || "UPI ID not set"}</p>
-                        <p className="normal-case text-slate-400">{o.paymentInfo?.phoneNo || "Phone not set"}</p>
-                      </div>
+                    <td className="py-3.5 px-4 text-slate-500">
+                      {order.createdAt
+                        ? new Date(order.createdAt).toLocaleDateString("en-IN")
+                        : "2026-07-26"}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="py-3.5 px-4 font-bold text-slate-600">{order.paymentMethod || "COD"}</td>
+                    <td className="py-3.5 px-4 font-extrabold text-emerald-950">₹{order.totalAmount}</td>
+                    <td className="py-3.5 px-4">
                       <select
-                        value={o.orderStatus}
-                        disabled={updatingOrderId === o._id}
-                        onChange={(e) => {
-                          const nextStatus = e.target.value;
-                          if (nextStatus === o.orderStatus) return;
-                          updateStatus(o._id, nextStatus);
-                        }}
-                        className={`admin-input-flat text-xs font-black uppercase ${getStatusColor(o.orderStatus)} border-0`}
+                        value={order.status || "Processing"}
+                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                        className={`text-xs font-bold rounded-xl px-2.5 py-1 border focus:outline-none cursor-pointer ${
+                          order.status === "Delivered"
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                            : order.status === "Shipped"
+                            ? "bg-sky-100 text-sky-800 border-sky-300"
+                            : "bg-amber-100 text-amber-800 border-amber-300"
+                        }`}
                       >
-                        {STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
+                        <option value="Pending">Pending</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
                       </select>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        onClick={() => setSelectedOrder(order)}
+                        className="p-1.5 text-slate-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -221,54 +127,66 @@ export default function Orders() {
             </table>
           </div>
         )}
+      </div>
 
-        <div className="py-4 px-8 border-t border-slate-50 bg-slate-50/50 flex flex-wrap justify-between items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-          <span>
-            Page {page} · {items.length} rows
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-40"
-            >
-              Prev
-            </button>
-            <button
-              type="button"
-              disabled={page * 20 >= total}
-              onClick={() => setPage((p) => p + 1)}
-              className="px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-40"
-            >
-              Next
-            </button>
+      {/* Order Detail Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="serif-font font-bold text-lg text-slate-900">
+                  Order Details #{selectedOrder._id}
+                </h3>
+                <span className="text-xs text-slate-400">
+                  Placed on {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleDateString("en-IN") : "Today"}
+                </span>
+              </div>
+              <button onClick={() => setSelectedOrder(null)}>
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="bg-slate-50 p-4 rounded-2xl space-y-1">
+                <h4 className="font-bold text-slate-800 uppercase tracking-wider mb-1">Customer Shipping Address</h4>
+                <p className="font-bold text-slate-900">{selectedOrder.shippingAddress?.fullName || selectedOrder.customerName}</p>
+                <p className="text-slate-600">{selectedOrder.shippingAddress?.address || "Delivery Address"}</p>
+                <p className="text-slate-600">
+                  {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} - {selectedOrder.shippingAddress?.pincode}
+                </p>
+                <p className="text-emerald-800 font-bold mt-1">Phone: {selectedOrder.shippingAddress?.phone || "+91 98765 43210"}</p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-800 uppercase tracking-wider mb-2">Order Items</h4>
+                <div className="space-y-2">
+                  {selectedOrder.items?.map((item, i) => (
+                    <div key={i} className="flex justify-between items-center bg-emerald-50/50 p-2.5 rounded-xl">
+                      <span className="font-bold text-slate-900">{item.name} x {item.quantity}</span>
+                      <span className="font-extrabold text-emerald-950">₹{item.price * item.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center border-t border-slate-100 pt-3 text-sm font-extrabold text-slate-900">
+                <span>Grand Total Paid ({selectedOrder.paymentMethod || "COD"})</span>
+                <span className="text-emerald-800">₹{selectedOrder.totalAmount}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="bg-emerald-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl"
+              >
+                Close Modal
+              </button>
+            </div>
           </div>
         </div>
-      </section>
-
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .admin-input-flat {
-          width: 100%;
-          padding: 0.6rem 0.75rem;
-          background: #f8fafc;
-          border: 1.5px solid #f1f5f9;
-          border-radius: 0.75rem;
-          font-weight: 700;
-          color: #334155;
-          outline: none;
-          transition: all 0.2s ease;
-          font-size: 0.75rem;
-        }
-        .admin-input-flat:focus {
-          border-color: #059669;
-          background: #fff;
-        }
-      `,
-        }}
-      />
+      )}
     </div>
   );
 }
